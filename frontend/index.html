@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente BVL — Sistema Experto</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#080c14; --card:#0e1420; --card2:#141b2d;
+  --green:#00c47a; --green-light:#e1f5ee; --green-dark:#0f6e56;
+  --red:#e24b4a; --red-light:#faece7; --red-dark:#993c1d;
+  --blue:#378add; --blue-light:#e6f1fb; --blue-dark:#185fa5;
+  --amber:#ba7517; --amber-light:#faeeda;
+  --gold:#c9a500; --purple:#534ab7;
+  --text:#e8eaf6; --muted:#6c7a95; --border:#1e2a42;
+  --radius:10px; --radius-lg:14px;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;}
+.container{max-width:1400px;margin:0 auto;padding:20px;}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 24px;
+  background:linear-gradient(135deg,#0d1b2a,#1a2744,#0d1b2a);
+  border:0.5px solid #1e3a5f;
+  border-radius:var(--radius-lg);
+  margin-bottom:20px;
+  position:relative;overflow:hidden;
+}
+.topbar::after{content:'';position:absolute;top:0;right:0;width:300px;height:100%;background:radial-gradient(circle at 80% 50%,rgba(0,196,122,.07),transparent 70%);pointer-events:none;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-icon{width:38px;height:38px;border-radius:10px;background:rgba(0,196,122,.15);border:1px solid rgba(0,196,122,.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.topbar-title{font-size:1.2rem;font-weight:600;color:#e8eaf6;}
+.topbar-title span{color:var(--green);}
+.topbar-sub{font-size:.8rem;color:var(--muted);margin-top:2px;}
+.live-badge{display:flex;align-items:center;gap:7px;background:rgba(0,196,122,.08);border:0.5px solid rgba(0,196,122,.25);border-radius:20px;padding:5px 14px;font-size:.8rem;color:var(--green);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.live-badge.offline{color:#ff6b35;border-color:rgba(255,107,53,.3);background:rgba(255,107,53,.08);}
+.live-badge.offline .live-dot{background:#ff6b35;}
+
+/* ── CONTROLS ── */
+.controls{
+  background:var(--card);border:0.5px solid var(--border);
+  border-radius:var(--radius-lg);padding:20px;
+  margin-bottom:20px;
+  display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;
+}
+.ctrl-group{display:flex;flex-direction:column;gap:7px;flex:1;min-width:200px;}
+.ctrl-group label{font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+
+/* Checkboxes activos */
+.activos-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.activo-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;
+  border:0.5px solid var(--border);
+  border-radius:8px;cursor:pointer;
+  background:var(--card2);
+  transition:all .15s;
+  user-select:none;
+}
+.activo-item:hover{border-color:rgba(0,196,122,.4);}
+.activo-item.selected{background:rgba(0,196,122,.08);border-color:rgba(0,196,122,.4);}
+.activo-check{
+  width:16px;height:16px;border-radius:4px;
+  border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.activo-item.selected .activo-check{background:var(--green);border-color:var(--green);}
+.activo-item.selected .activo-check::after{
+  content:'✓';font-size:10px;color:#e1f5ee;font-weight:700;line-height:1;
+}
+.activo-label{font-size:.82rem;}
+.activo-item.selected .activo-label{color:var(--green);font-weight:500;}
+
+/* Perfil */
+.perfil-wrap{display:flex;flex-direction:column;gap:8px;min-width:200px;max-width:260px;}
+.perfil-select{
+  background:var(--card2);color:var(--text);
+  border:0.5px solid var(--border);border-radius:8px;
+  padding:8px 12px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;cursor:pointer;
+}
+.perfil-msg{border-radius:8px;padding:10px 13px;font-size:.8rem;line-height:1.55;}
+.perfil-msg.conservador{background:rgba(0,196,122,.08);color:var(--green);border:0.5px solid rgba(0,196,122,.3);}
+.perfil-msg.moderado{background:rgba(55,138,221,.08);color:var(--blue);border:0.5px solid rgba(55,138,221,.3);}
+.perfil-msg.agresivo{background:rgba(186,117,23,.08);color:#c9a500;border:0.5px solid rgba(186,117,23,.3);}
+
+/* Botón */
+.btn-analizar{
+  background:linear-gradient(135deg,#1565c0,#0d47a1);
+  color:#fff;border:none;border-radius:var(--radius);
+  padding:10px 24px;
+  font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:600;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+  align-self:flex-end;
+}
+.btn-analizar:hover{background:linear-gradient(135deg,#1e88e5,#1565c0);transform:translateY(-1px);box-shadow:0 4px 15px rgba(30,136,229,.35);}
+.btn-analizar:active{transform:translateY(0);}
+
+/* ── LOADING ── */
+.loading{display:none;align-items:center;justify-content:center;padding:60px;gap:12px;color:var(--muted);}
+.loading.show{display:flex;}
+.spinner{width:24px;height:24px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--green);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── METRICS ── */
+.sec-title{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:20px;}
+.mcard{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;transition:transform .2s,border-color .2s;}
+.mcard:hover{transform:translateY(-2px);}
+.mcard.up-card{border-color:rgba(0,196,122,.4);background:rgba(0,196,122,.06);}
+.mcard.up-card .mval{color:var(--green);}
+.mcard.dn-card{border-color:rgba(226,75,74,.4);background:rgba(226,75,74,.06);}
+.mcard.dn-card .mval{color:var(--red);}
+.mlabel{font-size:.78rem;color:var(--muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mval{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:600;}
+.mdelta{font-size:.82rem;margin-top:4px;font-weight:500;}
+.mdelta.up{color:var(--green);}
+.mdelta.dn{color:var(--red);}
+.msector{font-size:.7rem;color:var(--muted);margin-top:3px;}
+
+/* ── CHARTS ── */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:20px;}
+.chart-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px;}
+.chart-title{font-size:.75rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px;}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:9px 18px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:.9rem;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ── CLIPS ── */
+.clips-meta{font-size:.8rem;color:var(--muted);margin-bottom:12px;}
+.rules-list{display:flex;flex-direction:column;gap:8px;}
+.rule-card{
+  background:var(--card);border:0.5px solid var(--border);
+  border-left:3px solid var(--border);
+  border-radius:0 var(--radius) var(--radius) 0;
+  padding:12px 16px;display:flex;gap:10px;align-items:flex-start;
+}
+.rule-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px;}
+.rule-empresa{font-weight:600;font-size:.9rem;}
+.rule-id{font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.rule-accion{font-size:.8rem;font-weight:500;margin-top:4px;}
+
+/* LISP */
+.lisp-title{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px;}
+.code-block{background:#070b12;border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#abb2bf;overflow-x:auto;}
+.kw{color:#c678dd;}.fn{color:#61afef;}.str{color:#3d9b56;}.cm{color:#5c6370;}.nm{color:#d19a66;}
+
+/* ── IA ── */
+.btn-ia{
+  background:linear-gradient(135deg,#1D9E75,#0f6e56);
+  color:#e1f5ee;border:none;border-radius:var(--radius);
+  padding:9px 22px;font-family:'Space Grotesk',sans-serif;
+  font-size:.9rem;font-weight:600;cursor:pointer;
+  margin-bottom:16px;transition:all .2s;display:flex;align-items:center;gap:7px;
+}
+.btn-ia:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(29,158,117,.3);}
+.ia-output{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px;font-size:.88rem;line-height:1.75;white-space:pre-wrap;color:var(--text);}
+.ia-loading{display:flex;align-items:center;gap:10px;color:var(--muted);padding:20px;}
+
+/* ── INFO PANEL ── */
+.info-panel{
+  background:var(--card2);border:0.5px solid var(--border);
+  border-radius:var(--radius-lg);padding:16px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+  font-size:.8rem;color:var(--muted);
+  margin-bottom:20px;
+}
+.info-item{display:flex;align-items:center;gap:6px;}
+.info-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:24px;color:var(--muted);font-size:.75rem;border-top:0.5px solid var(--border);margin-top:30px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon"></div>
+      <div>
+        <div class="topbar-title">Agente Inteligente <span>BVL</span></div>
+        <div class="topbar-sub">Sistema Experto de Inversiones · UPAO 2026 · Dr. Sagastegui</div>
+      </div>
+    </div>
+    <div id="live-badge" class="live-badge">
+      <div class="live-dot"></div>
+      <span id="live-text">Verificando...</span>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+
+    <div class="ctrl-group">
+      <label>Activos a analizar</label>
+      <div class="activos-grid" id="activos-grid">
+        <!-- Se llena dinámicamente -->
+      </div>
+    </div>
+
+    <div class="perfil-wrap">
+      <label style="font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Perfil de riesgo</label>
+      <select class="perfil-select" id="sel-perfil" onchange="cambiarPerfil(this.value)">
+        <option value="Conservador">Conservador</option>
+        <option value="Moderado" selected>Moderado</option>
+        <option value="Agresivo">Agresivo</option>
+      </select>
+      <div id="perfil-msg" class="perfil-msg moderado">
+        Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2% y prefiere activos con historial estable.
+      </div>
+    </div>
+
+    <button class="btn-analizar" onclick="analizar()">🔍 Analizar Mercado</button>
+
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <span>Consultando backend API...</span>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" style="display:none;">
+
+    <!-- Info panel -->
+    <div class="info-panel">
+      <div class="info-item"><div class="info-dot"></div><span id="info-activos">— activos analizados</span></div>
+      <div class="info-item"><span id="info-reglas">— reglas activadas</span></div>
+      <div class="info-item">Perfil: <strong id="info-perfil" style="color:var(--text);">—</strong></div>
+      <div class="info-item"><span id="info-hora">—</span></div>
+    </div>
+
+    <!-- Métricas -->
+    <div class="sec-title">Precios en tiempo real — Bolsa de Valores de Lima</div>
+    <div id="metrics-grid" class="metrics-grid"></div>
+
+    <!-- Gráficas -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Crecimiento % por empresa</div>
+        <canvas id="bar-chart" height="120"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Distribución de cartera</div>
+        <canvas id="donut-chart" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('clips', this)">Motor CLIPS</button>
+      <button class="tab-btn" onclick="switchTab('ia', this)">Análisis IA</button>
+    </div>
+
+    <!-- TAB CLIPS -->
+    <div id="tab-clips" class="tab-content active">
+      <div id="clips-meta" class="clips-meta"></div>
+      <div id="rules-list" class="rules-list"></div>
+
+      <div class="lisp-title">🔮 Hechos LISP Generados — data/hechos_mercado.lisp</div>
+      <div class="code-block"><pre id="lisp-code">-- Ejecuta un análisis para ver los hechos generados --</pre></div>
+    </div>
+
+    <!-- TAB IA -->
+    <div id="tab-ia" class="tab-content">
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:14px;">
+        El agente consulta el backend FastAPI que orquesta Gemini AI para generar un análisis narrativo del portafolio.
+      </p>
+      <button class="btn-ia" id="btn-ia" onclick="generarIA()">
+        ✨ Generar Opinión Estratégica
+      </button>
+      <div id="ia-output"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer class="footer">
+  Sistema Experto BVL · UPAO 2026 · Dr. Sagastegui Chigne ·
+  Python + FastAPI + HTML5 + CSS3 + JavaScript + CLIPS + LISP
+</footer>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let barChart = null, donutChart = null;
+let tickersMap = {}; // {ticker: nombre}
+let ultimosTickers = [];
+let ultimoPerfil = 'Moderado';
+
+// ── Mensajes por perfil ──
+const PERFIL_MSGS = {
+  Conservador: 'Prioriza la seguridad del capital. Solo activos estables con baja volatilidad. Evita caídas mayores a 1.5%.',
+  Moderado:    'Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2% y prefiere activos con historial estable.',
+  Agresivo:    'Maximiza el retorno asumiendo mayor riesgo. Apto para horizontes de inversión largos y alta tolerancia a la volatilidad.'
+};
+
+const PERFIL_CLS = {
+  Conservador: 'conservador',
+  Moderado:    'moderado',
+  Agresivo:    'agresivo'
+};
+
+// ── Al cargar ──
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkBackend();
+  await cargarTickers();
+});
+
+// ── Verificar backend ──
+async function checkBackend() {
+  const badge = document.getElementById('live-badge');
+  const text  = document.getElementById('live-text');
+  try {
+    const r = await fetch(`${API}/`, { signal: AbortSignal.timeout(4000) });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      text.textContent = 'Backend activo';
+      badge.classList.remove('offline');
+    }
+  } catch {
+    text.textContent = 'Backend offline — corre: uvicorn backend.main:app --reload';
+    badge.classList.add('offline');
+  }
+}
+
+// ── Cargar tickers ──
+async function cargarTickers() {
+  try {
+    const r = await fetch(`${API}/tickers`);
+    const d = await r.json();
+    tickersMap = d.tickers;
+    const grid = document.getElementById('activos-grid');
+    grid.innerHTML = '';
+    const defaultSel = Object.keys(tickersMap).slice(0, 3);
+    for (const [ticker, nombre] of Object.entries(tickersMap)) {
+      const sel = defaultSel.includes(ticker);
+      const item = document.createElement('div');
+      item.className = 'activo-item' + (sel ? ' selected' : '');
+      item.dataset.ticker = ticker;
+      item.onclick = () => item.classList.toggle('selected');
+      item.innerHTML = `
+        <div class="activo-check"></div>
+        <span class="activo-label">${nombre}</span>`;
+      grid.appendChild(item);
+    }
+  } catch(e) {
+    document.getElementById('activos-grid').innerHTML =
+      '<p style="color:var(--muted);font-size:.8rem;">Error al cargar tickers. Verifica el backend.</p>';
+  }
+}
+
+// ── Cambiar perfil ──
+function cambiarPerfil(perfil) {
+  const el = document.getElementById('perfil-msg');
+  el.className = 'perfil-msg ' + PERFIL_CLS[perfil];
+  el.textContent = PERFIL_MSGS[perfil];
+  ultimoPerfil = perfil;
+}
+
+// ── Analizar ──
+async function analizar() {
+  const selItems = document.querySelectorAll('.activo-item.selected');
+  const tickers  = Array.from(selItems).map(i => i.dataset.ticker).filter(Boolean);
+
+  if (!tickers.length) { alert('Selecciona al menos un activo.'); return; }
+
+  ultimosTickers = tickers;
+  ultimoPerfil   = document.getElementById('sel-perfil').value;
+
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('dashboard').style.display = 'none';
+
+  try {
+    const ts = tickers.join(',');
+    const [rA, rR] = await Promise.all([
+      fetch(`${API}/activos?tickers=${ts}`).then(r => r.json()),
+      fetch(`${API}/reglas?tickers=${ts}&perfil=${ultimoPerfil}`).then(r => r.json())
+    ]);
+
+    renderMetricas(rA);
+    renderGraficas(rA);
+    renderReglas(rR, ultimoPerfil);
+    renderLisp(rA);
+    actualizarInfoPanel(rA, rR);
+
+    document.getElementById('ia-output').innerHTML = '';
+    document.getElementById('dashboard').style.display = 'block';
+
+  } catch(e) {
+    alert('Error al conectar con el backend: ' + e.message);
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+  }
+}
+
+// ── Info panel ──
+function actualizarInfoPanel(activos, reglas) {
+  document.getElementById('info-activos').textContent = `${activos.length} activos analizados`;
+  document.getElementById('info-reglas').textContent = `${reglas.length} reglas activadas`;
+  document.getElementById('info-perfil').textContent = ultimoPerfil;
+  const now = new Date();
+  document.getElementById('info-hora').textContent =
+    `Actualizado ${now.toLocaleTimeString('es-PE')}`;
+}
+
+// ── Métricas ──
+function renderMetricas(activos) {
+  document.getElementById('metrics-grid').innerHTML = activos.map(a => {
+    const up  = a.crecimiento >= 0;
+    const cls = a.crecimiento >= 1 ? 'up-card' : a.crecimiento <= -2 ? 'dn-card' : '';
+    return `
+    <div class="mcard ${cls}">
+      <div class="mlabel">${a.empresa}</div>
+      <div class="mval">S/. ${a.precio}</div>
+      <div class="mdelta ${up?'up':'dn'}">${up?'▲':'▼'} ${Math.abs(a.crecimiento)}%</div>
+      <div class="msector">${a.sector}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Gráficas ──
+function renderGraficas(activos) {
+  const labels  = activos.map(a => a.empresa);
+  const valores = activos.map(a => a.crecimiento);
+  const precios = activos.map(a => a.precio);
+  const bgPos   = 'rgba(0,196,122,.7)', bgNeg = 'rgba(226,75,74,.6)';
+  const brPos   = '#00c47a', brNeg = '#e24b4a';
+  const COLORS  = ['#00c47a','#378add','#c9a500','#e24b4a','#a855f7','#ff6b35','#4ecdc4'];
+
+  if (barChart)   { barChart.destroy(); }
+  if (donutChart) { donutChart.destroy(); }
+
+  barChart = new Chart(document.getElementById('bar-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: valores,
+        backgroundColor: valores.map(v => v >= 0 ? bgPos : bgNeg),
+        borderColor:     valores.map(v => v >= 0 ? brPos : brNeg),
+        borderWidth: 1.5, borderRadius: 5, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#141b2d', titleColor: '#e8eaf6',
+          bodyColor: '#00c47a', borderColor: '#1e2a42', borderWidth: 1,
+          callbacks: { label: c => ` ${c.parsed.y.toFixed(2)}%  |  S/. ${precios[c.dataIndex]}` }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#6c7a95', font: { size: 11 } }, grid: { color: '#1e2a42' } },
+        y: { beginAtZero: true, ticks: { color: '#6c7a95', callback: v => v + '%' }, grid: { color: '#1e2a42' } }
+      }
+    }
+  });
+
+  donutChart = new Chart(document.getElementById('donut-chart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: valores.map(Math.abs),
+        backgroundColor: COLORS,
+        borderColor: '#0e1420', borderWidth: 3, hoverOffset: 5
+      }]
+    },
+    options: {
+      responsive: true, cutout: '67%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#6c7a95', font: { size: 10 }, boxWidth: 9, padding: 8 } },
+        tooltip: { backgroundColor: '#141b2d', titleColor: '#e8eaf6', bodyColor: '#ffd700', borderColor: '#1e2a42', borderWidth: 1 }
+      }
+    }
+  });
+}
+
+// ── Reglas CLIPS ──
+function renderReglas(reglas, perfil) {
+  document.getElementById('clips-meta').textContent =
+    `Perfil: ${perfil} · ${reglas.length} regla(s) activadas · 90 reglas totales · vía API /reglas`;
+
+  document.getElementById('rules-list').innerHTML = reglas.map(r => `
+    <div class="rule-card" style="border-left-color:${r.color}">
+      <div class="rule-icon">${r.icono}</div>
+      <div>
+        <div class="rule-empresa">${r.empresa}</div>
+        <div class="rule-id">${r.regla}</div>
+        <div class="rule-accion" style="color:${r.color}">→ ${r.accion}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── LISP ──
+function renderLisp(activos) {
+  let s = `<span class="cm">; hechos_mercado.lisp — generado automáticamente por MarketSensor</span>\n`;
+  s    += `<span class="cm">; Sistema Experto BVL · UPAO 2026</span>\n\n`;
+  s    += `(<span class="kw">setq</span> <span class="fn">hechos-mercado</span> <span class="str">'</span>(\n`;
+  activos.forEach(a => {
+    const c = a.crecimiento >= 0 ? '#00c47a' : '#e24b4a';
+    s += `  (<span class="str">"${a.empresa}"</span> `;
+    s += `<span class="nm">${a.precio}</span> `;
+    s += `<span style="color:${c}">${a.crecimiento}</span> `;
+    s += `<span class="str">"${a.sector}"</span>)\n`;
+  });
+  s += `))\n`;
+  document.getElementById('lisp-code').innerHTML = s;
+}
+
+// ── Análisis IA ──
+async function generarIA() {
+  if (!ultimosTickers.length) { alert('Primero analiza el mercado.'); return; }
+
+  const output = document.getElementById('ia-output');
+  output.innerHTML = '<div class="ia-loading"><div class="spinner"></div> Consultando Gemini AI vía backend...</div>';
+
+  try {
+    const r = await fetch(`${API}/analisis-ia?tickers=${ultimosTickers.join(',')}&perfil=${ultimoPerfil}`);
+    const d = await r.json();
+    output.innerHTML = `<div class="ia-output">${d.analisis}</div>`;
+  } catch(e) {
+    output.innerHTML = `<div style="color:var(--red);padding:16px;">❌ Error: ${e.message}</div>`;
+  }
+}
+
+// ── Tabs ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
+</body>
+</html>
