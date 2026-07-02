@@ -1,0 +1,337 @@
+"""Versión async de ExpertBrain.
+Reemplaza requests síncrono + time.sleep por httpx async + asyncio.sleep.
+La lógica de prompts y análisis es idéntica a tu original.
+"""
+import asyncio
+import logging
+from typing import Final
+
+import httpx
+
+logger = logging.getLogger(__name__)
+
+_MAX_REINTENTOS: Final[int] = 3
+_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1beta"
+
+
+class AsyncExpertBrain:
+    """
+    ExpertBrain async.
+    Los prompts son 100% iguales al original — solo cambia el transporte HTTP.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        modelo: str = "models/gemini-2.5-flash-lite",
+        av_key: str = "",
+        news_key: str = "",
+    ) -> None:
+        self._api_key = api_key
+        self._modelo = modelo
+        self._av_key = av_key
+        self._news_key = news_key
+        # httpx.AsyncClient — reutilizar entre requests, no crear uno por llamada
+        self._client = httpx.AsyncClient(timeout=30.0)
+
+    async def _generar(self, prompt: str) -> str:
+        """Equivalente async de tu método _generar original."""
+        url = f"{_BASE_URL}/{self._modelo}:generateContent?key={self._api_key}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+        for intento in range(_MAX_REINTENTOS):
+            try:
+                resp = await self._client.post(url, json=payload)
+                data = resp.json()
+
+                if "candidates" in data:
+                    return data["candidates"][0]["content"]["parts"][0]["text"]
+
+                error = data.get("error", {})
+                codigo = error.get("code", 0)
+                mensaje = error.get("message", str(data))
+
+                # 429 o alta demanda — backoff exponencial
+                if codigo == 429 or any(
+                    x in mensaje.lower()
+                    for x in ["high demand", "overloaded", "try again"]
+                ):
+                    espera = 15 * (intento + 1)
+                    logger.warning(
+                        "Gemini rate limit (intento %d/%d). Esperando %ds.",
+                        intento + 1, _MAX_REINTENTOS, espera
+                    )
+                    await asyncio.sleep(espera)  # ← no bloquea el event loop
+                    continue
+
+                if codigo == 503:
+                    await asyncio.sleep(20)
+                    continue
+
+                logger.error("Error Gemini: %s", mensaje)
+                return f"Error de Gemini: {mensaje}"
+
+            except httpx.TimeoutException:
+                logger.warning("Timeout intento %d/%d", intento + 1, _MAX_REINTENTOS)
+                if intento < _MAX_REINTENTOS - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return "Gemini no respondió a tiempo."
+
+            except httpx.ConnectError:
+                return "Sin conexión a internet."
+
+            except Exception as exc:
+                logger.exception("Error inesperado en Gemini: %s", exc)
+                if intento < _MAX_REINTENTOS - 1:
+                    await asyncio.sleep(3)
+                    continue
+                return f"Error inesperado: {exc}"
+
+        return "Gemini sigue con alta demanda. Intenta en unos minutos."
+
+    async def _buscar_noticias_externas(self, tickers: list[str]) -> str:
+        """
+        Versión async de tu _buscar_noticias_externas.
+        Consulta Alpha Vantage y NewsAPI en paralelo por ticker.
+        """
+        async def _fetch_ticker_news(ticker: str) -> str:
+            # Plan A: Alpha Vantage
+            if self._av_key:
+                try:
+                    r = await self._client.get(
+                        "https://www.alphavantage.co/query",
+                        params={
+                            "function": "NEWS_SENTIMENT",
+                            "tickers": ticker,
+                            "apikey": self._av_key,
+                            "limit": "2",
+                        },
+                        timeout=5.0,
+                    )
+                    data = r.json()
+                    if "feed" in data and data["feed"]:
+                        partes = []
+                        for n in data["feed"][:2]:
+                            titulo = n.get("title", "")
+                            sent   = n.get("overall_sentiment_label", "Neutral")
+                            fecha  = n.get("time_published", "")[:8]
+                            if titulo:
+                                partes.append(
+                                    f"[{ticker}] {titulo} (Sentimiento: {sent}, Fecha: {fecha})"
+                                )
+                        if partes:
+                            return "\n".join(partes)
+                except Exception:
+                    pass
+
+            # Plan B: NewsAPI
+            if self._news_key:
+                try:
+                    r = await self._client.get(
+                        "https://newsapi.org/v2/everything",
+                        params={
+                            "q": ticker,
+                            "language": "es",
+                            "sortBy": "publishedAt",
+                            "pageSize": "2",
+                            "apiKey": self._news_key,
+                        },
+                        timeout=5.0,
+                    )
+                    data = r.json()
+                    if "articles" in data and data["articles"]:
+                        partes = []
+                        for art in data["articles"][:2]:
+                            titulo = art.get("title", "")
+                            fecha  = art.get("publishedAt", "")[:10]
+                            if titulo and "[Removed]" not in titulo:
+                                partes.append(f"[{ticker}] {titulo} (Fecha: {fecha})")
+                        if partes:
+                            return "\n".join(partes)
+                except Exception:
+                    pass
+
+            return ""
+
+        # Todos los tickers en paralelo
+        tasks = [_fetch_ticker_news(t) for t in tickers[:4]]
+        resultados = await asyncio.gather(*tasks, return_exceptions=True)
+
+        encontradas = [
+            r for r in resultados
+            if isinstance(r, str) and r
+        ]
+        return "\n".join(encontradas) if encontradas else ""
+
+    async def procesar_estrategia(self, datos_mercado) -> str:
+        """
+        Equivalente async de tu procesar_estrategia original.
+        Mismo prompt, misma lógica — solo el transporte es async.
+        """
+        import pandas as pd
+        from agents.news_analyzer import NewsAnalyzer
+        from agents.prediction_engine import PredictionEngine
+
+        filas   = []
+        tickers = []
+        for _, row in datos_mercado.iterrows():
+            tendencia = "subiendo" if row["Crecimiento_%"] >= 0 else "bajando"
+            filas.append(
+                f"• {row['Empresa']} ({row['Ticker']}): "
+                f"S/. {row['Precio']} — {tendencia} {abs(row['Crecimiento_%'])}% hoy"
+            )
+            tickers.append(row["Ticker"])
+
+        resumen_mercado = "\n".join(filas)
+
+        # Noticias externas async + noticias locales en executor (síncrono)
+        loop = asyncio.get_running_loop()
+
+        noticias_ext_task = self._buscar_noticias_externas(tickers)
+        noticias_loc_task = loop.run_in_executor(
+            None, self._noticias_locales_sync, tickers
+        )
+        predicciones_task = loop.run_in_executor(
+            None, self._predicciones_sync, tickers, datos_mercado
+        )
+
+        # Las tres en paralelo
+        noticias_ext, noticias_loc, predicciones = await asyncio.gather(
+            noticias_ext_task,
+            noticias_loc_task,
+            predicciones_task,
+        )
+
+        noticias = ""
+        if noticias_ext:
+            noticias += "NOTICIAS EN TIEMPO REAL:\n" + noticias_ext + "\n\n"
+        if noticias_loc:
+            noticias += "ANÁLISIS DETALLADO:\n" + noticias_loc
+        if not noticias:
+            noticias = "No se encontraron noticias recientes."
+
+        if not predicciones:
+            predicciones = "Predicciones no disponibles."
+
+        # Mismo prompt que tu original
+        prompt = f"""
+Eres Pfinance, un asesor financiero peruano con 15 años de experiencia en la BVL.
+Eres directo, cercano y honesto. Hablas como si le explicaras las cosas a un amigo 
+de confianza que quiere invertir pero no domina las finanzas.
+Nunca usas jerga innecesaria. Si algo es incierto, lo dices sin rodeos.
+
+Tienes esta información del portafolio de hoy:
+
+═══ PRECIOS DE HOY ═══
+{resumen_mercado}
+
+═══ NOTICIAS RECIENTES ═══
+{noticias}
+
+═══ PREDICCIONES ═══
+{predicciones}
+
+Escribe el análisis de forma natural y conversacional, siguiendo esta estructura:
+
+1. ¿QUÉ ESTÁ PASANDO HOY?
+2. ¿QUÉ DICEN LAS NOTICIAS?
+3. ¿QUÉ HARÍAS TÚ?
+4. ¿QUÉ PODRÍA PASAR?
+5. MI CONSEJO FINAL
+
+Reglas: Español natural, sin tecnicismos. Máximo 600 palabras.
+""".strip()
+
+        return await self._generar(prompt)
+
+    async def generar_ficha_tecnica(self, empresa: str, ticker: str) -> str:
+        """Equivalente async de generar_ficha_tecnica."""
+        loop = asyncio.get_running_loop()
+        noticias_loc = await loop.run_in_executor(
+            None, self._noticias_locales_sync, [ticker]
+        )
+        noticias_ext = await self._buscar_noticias_externas([ticker])
+
+        noticias = "\n".join(filter(None, [noticias_ext, noticias_loc]))
+        if not noticias:
+            noticias = "Sin noticias recientes disponibles."
+
+        prompt = f"""
+Eres un analista financiero que conoce muy bien el mercado peruano.
+Escribe una ficha sobre {empresa} ({ticker}) como si se la explicaras 
+a alguien que quiere invertir por primera vez. Tono cercano y directo.
+
+Incluye:
+- Qué hace esta empresa y por qué importa en el Perú
+- En qué sector opera y cómo le va a ese sector actualmente
+- Sus principales competidores o empresas relacionadas
+- Qué dicen las noticias recientes: {noticias}
+- Si fueras a invertir en ella, ¿qué te daría confianza y qué te preocuparía?
+
+Máximo 200 palabras. Tono humano, no de informe corporativo.
+""".strip()
+        return await self._generar(prompt)
+
+    async def aclose(self) -> None:
+        """Cerrar el cliente httpx al apagar la app."""
+        await self._client.aclose()
+
+    # ── Métodos síncronos para ejecutar en thread pool ──
+
+    @staticmethod
+    def _noticias_locales_sync(tickers: list[str]) -> str:
+        """Tu _noticias_locales original — se ejecuta en executor."""
+        try:
+            from agents.news_analyzer import NewsAnalyzer
+            analyzer = NewsAnalyzer()
+            bloques  = []
+            for ticker in tickers:
+                resumen    = analyzer.generar_resumen_noticias(ticker)
+                tendencia  = analyzer.analizar_tendencia(ticker)
+                catalistas = analyzer.detectar_catalistas(ticker)
+                pos = [c["titulo"] for c in catalistas.get("catalistas_positivos", [])]
+                neg = [c["titulo"] for c in catalistas.get("catalistas_negativos", [])]
+                bloque = f"[{ticker}] Tendencia: {tendencia['tendencia']}\n{resumen}"
+                if pos:
+                    bloque += f"  A favor: {', '.join(pos[:2])}\n"
+                if neg:
+                    bloque += f"  Riesgo: {', '.join(neg[:2])}\n"
+                bloques.append(bloque)
+            return "\n".join(bloques)
+        except Exception as exc:
+            logger.warning("NewsAnalyzer no disponible: %s", exc)
+            return ""
+
+    @staticmethod
+    def _predicciones_sync(tickers: list[str], df) -> str:
+        """Tu _obtener_predicciones original — se ejecuta en executor."""
+        try:
+            from agents.prediction_engine import PredictionEngine
+            from agents.news_analyzer import NewsAnalyzer
+            engine   = PredictionEngine()
+            analyzer = NewsAnalyzer()
+            bloques  = []
+            for _, row in df.iterrows():
+                ticker      = row["Ticker"]
+                precio      = row["Precio"]
+                crecimiento = row["Crecimiento_%"]
+                score       = 50 + min(max(crecimiento * 5, -40), 40)
+                catalistas  = analyzer.detectar_catalistas(ticker)
+                corto       = engine.predecir_corto_plazo(ticker, score, catalistas)
+                mediano     = engine.predecir_mediano_plazo(ticker, score, 50)
+                largo       = engine.predecir_largo_plazo(ticker, score, 70)
+                escenarios  = engine.generar_escenarios(ticker, precio, score)
+                bloques.append(
+                    f"[{ticker}]\n"
+                    f"  Corto  ({corto['periodo']}): {corto['direccion']} — {corto['confianza']}\n"
+                    f"  Mediano({mediano['periodo']}): {mediano['direccion']}\n"
+                    f"  Largo  ({largo['periodo']}): {largo['potencial']} — {largo['outlook']}\n"
+                    f"  Bajista(20%): S/. {escenarios['escenario_bajista']['precio_esperado']}\n"
+                    f"  Base   (60%): S/. {escenarios['escenario_base']['precio_esperado']}\n"
+                    f"  Alcista(20%): S/. {escenarios['escenario_alcista']['precio_esperado']}\n"
+                )
+            return "\n".join(bloques)
+        except Exception as exc:
+            logger.warning("PredictionEngine no disponible: %s", exc)
+            return ""

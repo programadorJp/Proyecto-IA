@@ -66,24 +66,24 @@ class RecommendationsEngine:
     def _generar_recomendacion(self, score_final):
         """Genera recomendación basada en score (0-100)."""
         if score_final >= 85:
-            return "FUERTE COMPRA [score 85+]"
+            return "FUERTE COMPRA"
         elif score_final >= 70:
-            return "COMPRA [score 70-84]"
+            return "COMPRA"
         elif score_final >= 55:
-            return "MANTENER [score 55-69]"
+            return "MANTENER"
         elif score_final >= 40:
-            return "VENTA [score 40-54]"
+            return "VENTA"
         else:
-            return "FUERTE VENTA [score < 40]"
+            return "FUERTE VENTA"
     
     def _calcular_confianza(self, score_final):
         """Calcula nivel de confianza en la recomendación."""
         if 40 <= score_final <= 60:
-            return "Baja (zona neutral)"
+            return "Baja "  # zona neutral, menos confianza
         elif score_final < 40 or score_final > 85:
-            return "Alta (extremos claros)"
+            return "Alta "  # extremos, mayor confianza
         else:
-            return "Media (tendencia moderada)"
+            return "Media "  # medio, confianza media
     
     def generar_reporte_completo(self, lista_tickers, precios_actual=None, precios_anterior=None):
         """
@@ -121,27 +121,27 @@ class RecommendationsEngine:
         sent = reporte['detalles']['sentimiento']
         
         explicacion = f"""
-📊 ANÁLISIS COMPLETO: {ticker}
+ANÁLISIS COMPLETO: {ticker}
 {'='*50}
 
-🎯 RECOMENDACIÓN: {rec}
+RECOMENDACIÓN: {rec}
    Score Final: {score}/100 | Confianza: {conf}
 
-📈 SCORES COMPONENTES:
+SCORES COMPONENTES:
    • Técnico:      {reporte['score_tecnico']}/100
    • Fundamental:  {reporte['score_fundamental']}/100
    • Sentimiento:  {reporte['score_sentimiento']}/100
 
-💪 ANÁLISIS FUNDAMENTAL:
+ANÁLISIS FUNDAMENTAL:
    Salud: {fund['salud']}
    {fund['detalle']}
 
-😊 ANÁLISIS DE SENTIMIENTO:
+ANÁLISIS DE SENTIMIENTO:
    {sent['sentimiento']}
    Noticias positivas: {sent['positivas']}
    Noticias negativas: {sent['negativas']}
 
-📌 CONCLUSIÓN:
+CONCLUSIÓN:
    {self._generar_conclusion(score)}
 """
         return explicacion
@@ -149,15 +149,15 @@ class RecommendationsEngine:
     def _generar_conclusion(self, score):
         """Genera texto de conclusión basado en el score."""
         if score >= 85:
-            return "[EXCELENTE] Excelentes senales de compra. Altamente recomendado para inversion."
+            return "Excelentes señales de compra. Altamente recomendado para inversión."
         elif score >= 70:
-            return "[POSITIVO] Senales positivas. Buen candidato para inversion."
+            return "Señales positivas. Buen candidato para inversión."
         elif score >= 55:
-            return "[NEUTRAL] Posicion neutral. Esperar confirmacion o mejor momento."
+            return "Posición neutral. Esperar confirmación o mejor momento."
         elif score >= 40:
-            return "[NEGATIVO] Senales negativas. Considerar reducir posicion o esperar."
+            return "Señales negativas. Considerar reducir posición o esperar."
         else:
-            return "[CRITICO] Senales muy negativas. No recomendado para inversion en este momento."
+            return "Señales muy negativas. No recomendado para inversión en este momento."
     
     @staticmethod
     def _get_timestamp():

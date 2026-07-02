@@ -21,7 +21,7 @@ def ejecutar_analisis(perfil: str = "Moderado", tickers: list = None):
 
     # 1. Percepción
     df = sensor.percibir_mercado(tickers)
-    print(f"\n✅ Datos obtenidos: {len(df)} activos")
+    print(f"\n 📊 Datos obtenidos: {len(df)} activos")
     print(df[["Empresa", "Precio", "Crecimiento_%", "Sector"]].to_string(index=False))
 
     # 2. Exportar hechos para CLISP externo
@@ -29,13 +29,13 @@ def ejecutar_analisis(perfil: str = "Moderado", tickers: list = None):
     clips.exportar_lisp(df, perfil)
 
     # 3. Reglas CLIPS
-    print(f"\n📋 Reglas activadas — Perfil: {perfil}")
+    print(f"\n 📋 Reglas activadas — Perfil: {perfil}")
     reglas = clips.evaluar(df, perfil)
     for r in reglas:
         print(f"  {r['icono']}  {r['empresa']:25s} | {r['regla']:35s} → {r['accion']}")
 
     # 4. Análisis IA
-    print("\n🤖 Análisis ExpertBrain (Gemini):")
+    print("\n 📈Análisis ExpertBrain (Gemini):")
     analisis = brain.procesar_estrategia(df)
     print(analisis)
 

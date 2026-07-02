@@ -3,345 +3,510 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agente BVL — Sistema Experto</title>
+<title>Sistema Experto BVL — Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#080c14; --card:#0e1420; --card2:#141b2d;
-  --green:#00c47a; --green-light:#e1f5ee; --green-dark:#0f6e56;
-  --red:#e24b4a; --red-light:#faece7; --red-dark:#993c1d;
-  --blue:#378add; --blue-light:#e6f1fb; --blue-dark:#185fa5;
-  --amber:#ba7517; --amber-light:#faeeda;
-  --gold:#c9a500; --purple:#534ab7;
-  --text:#e8eaf6; --muted:#6c7a95; --border:#1e2a42;
-  --radius:10px; --radius-lg:14px;
+  --bg:#080808;
+  --bg2:#0d0d0d;
+  --bg3:#111111;
+  --card:#141414;
+  --card2:#1a1a1a;
+  --border:#222222;
+  --border2:#2a2a2a;
+  --blue:#2979ff;
+  --blue2:#448aff;
+  --cyan:#00e5ff;
+  --cyan2:#18ffff;
+  --green:#00e676;
+  --red:#ff1744;
+  --gold:#ffd740;
+  --text:#f5f5f5;
+  --text2:#b0b0b0;
+  --muted:#606060;
+  --radius:8px;
 }
 
-body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;}
-.container{max-width:1400px;margin:0 auto;padding:20px;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
 
 /* ── TOPBAR ── */
 .topbar{
   display:flex;align-items:center;justify-content:space-between;
-  padding:18px 24px;
-  background:linear-gradient(135deg,#0d1b2a,#1a2744,#0d1b2a);
-  border:0.5px solid #1e3a5f;
-  border-radius:var(--radius-lg);
-  margin-bottom:20px;
-  position:relative;overflow:hidden;
+  padding:0 28px;height:52px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
 }
-.topbar::after{content:'';position:absolute;top:0;right:0;width:300px;height:100%;background:radial-gradient(circle at 80% 50%,rgba(0,196,122,.07),transparent 70%);pointer-events:none;}
-.topbar-left{display:flex;align-items:center;gap:12px;}
-.topbar-icon{width:38px;height:38px;border-radius:10px;background:rgba(0,196,122,.15);border:1px solid rgba(0,196,122,.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
-.topbar-title{font-size:1.2rem;font-weight:600;color:#e8eaf6;}
-.topbar-title span{color:var(--green);}
-.topbar-sub{font-size:.8rem;color:var(--muted);margin-top:2px;}
-.live-badge{display:flex;align-items:center;gap:7px;background:rgba(0,196,122,.08);border:0.5px solid rgba(0,196,122,.25);border-radius:20px;padding:5px 14px;font-size:.8rem;color:var(--green);}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.live-badge.offline{color:#ff6b35;border-color:rgba(255,107,53,.3);background:rgba(255,107,53,.08);}
-.live-badge.offline .live-dot{background:#ff6b35;}
+.topbar-left{display:flex;align-items:center;gap:16px;flex:1;}
+.topbar-nav{display:flex;align-items:center;gap:4px;position:absolute;left:50%;transform:translateX(-50%);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{
+  width:32px;height:32px;border-radius:6px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;color:#000;
+  font-family:'JetBrains Mono',monospace;
+}
+.logo-name{font-size:1rem;font-weight:700;letter-spacing:-.02em;}
+.logo-name span{color:var(--cyan);}
+.logo-tag{
+  font-size:.65rem;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;letter-spacing:.05em;
+  border:1px solid var(--border2);padding:2px 7px;border-radius:4px;
+}
+.topbar-nav{display:flex;align-items:center;gap:4px;}
+.nav-btn{
+  background:none;border:none;color:var(--muted);
+  padding:6px 14px;border-radius:var(--radius);
+  font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;
+  cursor:pointer;transition:all .15s;text-decoration:none;
+  display:flex;align-items:center;gap:6px;
+}
+.nav-btn:hover{background:var(--card2);color:var(--text);}
+.nav-btn.active{
+  background:rgba(41,121,255,.15);color:var(--blue2);
+  border:1px solid rgba(41,121,255,.3);
+}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  font-size:.72rem;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+}
+.sdot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 6px var(--green);
+  animation:pulse 2s infinite;
+}
+.sdot.offline{background:var(--red);box-shadow:0 0 6px var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── TICKER BAR ── */
+.ticker-bar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  height:30px;overflow:hidden;position:relative;
+}
+.ticker-bar::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:80px;
+  background:linear-gradient(to right,transparent,var(--bg2));
+  pointer-events:none;z-index:2;
+}
+.ticker-track{
+  display:flex;white-space:nowrap;
+  animation:scroll 35s linear infinite;
+  height:100%;
+}
+.ticker-track:hover{animation-play-state:paused;}
+.ticker-item{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:0 20px;border-right:1px solid var(--border);
+  font-size:.7rem;font-family:'JetBrains Mono',monospace;height:100%;
+}
+.t-name{color:var(--muted);font-weight:600;}
+.t-price{color:var(--text);font-weight:600;}
+.t-up{color:var(--green);font-weight:700;}
+.t-dn{color:var(--red);font-weight:700;}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ── MAIN CONTAINER ── */
+.container{max-width:1400px;margin:0 auto;padding:20px 24px;}
 
 /* ── CONTROLS ── */
 .controls{
-  background:var(--card);border:0.5px solid var(--border);
-  border-radius:var(--radius-lg);padding:20px;
-  margin-bottom:20px;
-  display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:20px;
+  display:flex;gap:20px;align-items:flex-start;
+  flex-wrap:wrap;margin-bottom:20px;
 }
-.ctrl-group{display:flex;flex-direction:column;gap:7px;flex:1;min-width:200px;}
-.ctrl-group label{font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
-
-/* Checkboxes activos */
-.activos-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.ctrl-group{display:flex;flex-direction:column;gap:8px;flex:1;min-width:200px;}
+.ctrl-label{
+  font-size:.65rem;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;
+  font-family:'JetBrains Mono',monospace;
+}
+.activos-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
 .activo-item{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 10px;
-  border:0.5px solid var(--border);
-  border-radius:8px;cursor:pointer;
-  background:var(--card2);
-  transition:all .15s;
-  user-select:none;
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border:1px solid var(--border);border-radius:6px;
+  cursor:pointer;background:var(--card2);
+  transition:all .12s;user-select:none;
 }
-.activo-item:hover{border-color:rgba(0,196,122,.4);}
-.activo-item.selected{background:rgba(0,196,122,.08);border-color:rgba(0,196,122,.4);}
+.activo-item:hover{border-color:rgba(41,121,255,.4);background:rgba(41,121,255,.05);}
+.activo-item.selected{
+  background:rgba(41,121,255,.1);
+  border-color:rgba(41,121,255,.5);
+}
 .activo-check{
-  width:16px;height:16px;border-radius:4px;
-  border:1.5px solid var(--border);
+  width:15px;height:15px;border-radius:3px;
+  border:1.5px solid var(--border2);
   display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .15s;
+  flex-shrink:0;transition:all .12s;font-size:9px;
 }
-.activo-item.selected .activo-check{background:var(--green);border-color:var(--green);}
-.activo-item.selected .activo-check::after{
-  content:'✓';font-size:10px;color:#e1f5ee;font-weight:700;line-height:1;
+.activo-item.selected .activo-check{
+  background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700;
 }
-.activo-label{font-size:.82rem;}
-.activo-item.selected .activo-label{color:var(--green);font-weight:500;}
-
-/* Perfil */
+.activo-label{font-size:.78rem;color:var(--text2);}
+.activo-item.selected .activo-label{color:var(--blue2);font-weight:500;}
 .perfil-wrap{display:flex;flex-direction:column;gap:8px;min-width:200px;max-width:260px;}
 .perfil-select{
   background:var(--card2);color:var(--text);
-  border:0.5px solid var(--border);border-radius:8px;
-  padding:8px 12px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;cursor:pointer;
+  border:1px solid var(--border2);border-radius:6px;
+  padding:8px 12px;font-family:'Inter',sans-serif;
+  font-size:.85rem;cursor:pointer;outline:none;
 }
-.perfil-msg{border-radius:8px;padding:10px 13px;font-size:.8rem;line-height:1.55;}
-.perfil-msg.conservador{background:rgba(0,196,122,.08);color:var(--green);border:0.5px solid rgba(0,196,122,.3);}
-.perfil-msg.moderado{background:rgba(55,138,221,.08);color:var(--blue);border:0.5px solid rgba(55,138,221,.3);}
-.perfil-msg.agresivo{background:rgba(186,117,23,.08);color:#c9a500;border:0.5px solid rgba(186,117,23,.3);}
-
-/* Botón */
+.perfil-select:focus{border-color:var(--blue);}
+.perfil-msg{border-radius:6px;padding:10px 12px;font-size:.76rem;line-height:1.6;}
+.perfil-msg.conservador{background:rgba(0,230,118,.06);color:#69f0ae;border:1px solid rgba(0,230,118,.2);}
+.perfil-msg.moderado{background:rgba(41,121,255,.06);color:#82b1ff;border:1px solid rgba(41,121,255,.2);}
+.perfil-msg.agresivo{background:rgba(255,215,64,.06);color:#ffe57f;border:1px solid rgba(255,215,64,.2);}
 .btn-analizar{
-  background:linear-gradient(135deg,#1565c0,#0d47a1);
-  color:#fff;border:none;border-radius:var(--radius);
-  padding:10px 24px;
-  font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:600;
-  cursor:pointer;transition:all .2s;white-space:nowrap;
-  align-self:flex-end;
+  background:linear-gradient(135deg,var(--blue),#1565c0);
+  color:white;border:none;border-radius:var(--radius);
+  padding:10px 24px;font-family:'Inter',sans-serif;
+  font-size:.9rem;font-weight:600;cursor:pointer;
+  transition:all .2s;white-space:nowrap;align-self:flex-end;
+  box-shadow:0 4px 16px rgba(41,121,255,.3);
 }
-.btn-analizar:hover{background:linear-gradient(135deg,#1e88e5,#1565c0);transform:translateY(-1px);box-shadow:0 4px 15px rgba(30,136,229,.35);}
-.btn-analizar:active{transform:translateY(0);}
+.btn-analizar:hover{
+  background:linear-gradient(135deg,var(--blue2),var(--blue));
+  transform:translateY(-1px);box-shadow:0 6px 20px rgba(41,121,255,.4);
+}
 
 /* ── LOADING ── */
 .loading{display:none;align-items:center;justify-content:center;padding:60px;gap:12px;color:var(--muted);}
 .loading.show{display:flex;}
-.spinner{width:24px;height:24px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--green);animation:spin .8s linear infinite;}
+.spinner{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid var(--border2);border-top-color:var(--blue);
+  animation:spin .8s linear infinite;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── INFO PANEL ── */
+.info-panel{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;margin-bottom:16px;
+}
+.info-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:.72rem;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+}
+.info-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 5px var(--cyan);
+}
+
+/* ── SECTION LABEL ── */
+.sec-label{
+  font-size:.65rem;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  font-family:'JetBrains Mono',monospace;
+  margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
 /* ── METRICS ── */
-.sec-title{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
-.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:20px;}
-.mcard{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;transition:transform .2s,border-color .2s;}
-.mcard:hover{transform:translateY(-2px);}
-.mcard.up-card{border-color:rgba(0,196,122,.4);background:rgba(0,196,122,.06);}
+.metrics-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(152px,1fr));
+  gap:8px;margin-bottom:16px;
+}
+.mcard{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.mcard::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--border2);
+}
+.mcard:hover{border-color:var(--border2);transform:translateY(-2px);}
+.mcard.up-card{border-color:rgba(0,230,118,.25);}
+.mcard.up-card::before{background:var(--green);}
+.mcard.dn-card{border-color:rgba(255,23,68,.25);}
+.mcard.dn-card::before{background:var(--red);}
+.mlabel{font-size:.72rem;color:var(--muted);margin-bottom:8px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mval{
+  font-family:'JetBrains Mono',monospace;
+  font-size:1.2rem;font-weight:600;color:var(--text);
+}
 .mcard.up-card .mval{color:var(--green);}
-.mcard.dn-card{border-color:rgba(226,75,74,.4);background:rgba(226,75,74,.06);}
 .mcard.dn-card .mval{color:var(--red);}
-.mlabel{font-size:.78rem;color:var(--muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mval{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:600;}
-.mdelta{font-size:.82rem;margin-top:4px;font-weight:500;}
+.mdelta{font-size:.78rem;margin-top:4px;font-weight:600;font-family:'JetBrains Mono',monospace;}
 .mdelta.up{color:var(--green);}
 .mdelta.dn{color:var(--red);}
-.msector{font-size:.7rem;color:var(--muted);margin-top:3px;}
+.msector{font-size:.64rem;color:var(--muted);margin-top:4px;}
 
 /* ── CHARTS ── */
-.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:20px;}
-.chart-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px;}
-.chart-title{font-size:.75rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px;}
+.chart-card{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:18px;
+}
+.chart-title{
+  font-size:.65rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:14px;font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;gap:8px;
+}
+.chart-title::before{
+  content:'';width:2px;height:12px;
+  background:linear-gradient(to bottom,var(--blue),var(--cyan));
+  border-radius:1px;
+}
 
 /* ── TABS ── */
-.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px;}
-.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:9px 18px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:.9rem;transition:all .2s;display:flex;align-items:center;gap:6px;}
-.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
+.tabs{
+  display:flex;border-bottom:1px solid var(--border);
+  margin-bottom:16px;gap:2px;
+}
+.tab-btn{
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);padding:10px 18px;cursor:pointer;
+  font-family:'Inter',sans-serif;font-weight:500;font-size:.84rem;
+  transition:all .15s;
+}
+.tab-btn:hover{color:var(--text2);}
+.tab-btn.active{color:var(--blue2);border-bottom-color:var(--blue);}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
 
 /* ── CLIPS ── */
-.clips-meta{font-size:.8rem;color:var(--muted);margin-bottom:12px;}
-.rules-list{display:flex;flex-direction:column;gap:8px;}
+.clips-meta{
+  font-size:.72rem;color:var(--muted);margin-bottom:12px;
+  padding:8px 12px;background:var(--card);
+  border-radius:6px;border:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;
+}
+.rules-list{display:flex;flex-direction:column;gap:6px;}
 .rule-card{
-  background:var(--card);border:0.5px solid var(--border);
-  border-left:3px solid var(--border);
+  background:var(--card);border:1px solid var(--border);
+  border-left:2px solid var(--border2);
   border-radius:0 var(--radius) var(--radius) 0;
-  padding:12px 16px;display:flex;gap:10px;align-items:flex-start;
+  padding:12px 16px;display:flex;gap:12px;
+  align-items:flex-start;transition:all .12s;
 }
+.rule-card:hover{border-left-width:3px;background:var(--card2);}
 .rule-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px;}
-.rule-empresa{font-weight:600;font-size:.9rem;}
-.rule-id{font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
-.rule-accion{font-size:.8rem;font-weight:500;margin-top:4px;}
-
-/* LISP */
-.lisp-title{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px;}
-.code-block{background:#070b12;border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#abb2bf;overflow-x:auto;}
-.kw{color:#c678dd;}.fn{color:#61afef;}.str{color:#3d9b56;}.cm{color:#5c6370;}.nm{color:#d19a66;}
-
-/* ── IA ── */
-.btn-ia{
-  background:linear-gradient(135deg,#1D9E75,#0f6e56);
-  color:#e1f5ee;border:none;border-radius:var(--radius);
-  padding:9px 22px;font-family:'Space Grotesk',sans-serif;
-  font-size:.9rem;font-weight:600;cursor:pointer;
-  margin-bottom:16px;transition:all .2s;display:flex;align-items:center;gap:7px;
+.rule-empresa{font-weight:600;font-size:.85rem;color:var(--text);}
+.rule-id{
+  font-size:.68rem;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;margin-top:2px;
 }
-.btn-ia:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(29,158,117,.3);}
-.ia-output{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px;font-size:.88rem;line-height:1.75;white-space:pre-wrap;color:var(--text);}
+.rule-accion{font-size:.78rem;font-weight:500;margin-top:4px;}
+
+/* ── IA OUTPUT ── */
+.btn-ia{
+  background:linear-gradient(135deg,var(--blue),#1565c0);
+  color:white;border:none;border-radius:var(--radius);
+  padding:9px 22px;font-family:'Inter',sans-serif;
+  font-size:.85rem;font-weight:600;cursor:pointer;
+  margin-bottom:16px;transition:all .2s;
+  display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 4px 14px rgba(41,121,255,.3);
+}
+.btn-ia:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(41,121,255,.4);}
+.ia-output{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:20px;
+  font-size:.86rem;line-height:1.8;color:var(--text2);
+}
+.ia-output h2{
+  font-size:.9rem;font-weight:600;color:var(--cyan);
+  margin:18px 0 8px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.ia-output h2:first-child{margin-top:0;}
+.ia-output p{margin-bottom:10px;}
+.ia-output strong{color:var(--blue2);font-weight:600;}
+.ia-output ul{margin:8px 0 12px;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;}
+.ia-output ul li{
+  padding:8px 12px;background:var(--bg3);
+  border-left:2px solid var(--blue);
+  border-radius:0 6px 6px 0;font-size:.83rem;
+}
 .ia-loading{display:flex;align-items:center;gap:10px;color:var(--muted);padding:20px;}
 
-/* ── INFO PANEL ── */
-.info-panel{
-  background:var(--card2);border:0.5px solid var(--border);
-  border-radius:var(--radius-lg);padding:16px 20px;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:12px;
-  font-size:.8rem;color:var(--muted);
-  margin-bottom:20px;
-}
-.info-item{display:flex;align-items:center;gap:6px;}
-.info-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
-
 /* ── FOOTER ── */
-.footer{text-align:center;padding:24px;color:var(--muted);font-size:.75rem;border-top:0.5px solid var(--border);margin-top:30px;}
+.footer{
+  text-align:center;padding:20px;color:var(--muted);
+  font-size:.68rem;border-top:1px solid var(--border);
+  margin-top:28px;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.04em;
+}
 </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-icon"></div>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-icon">PF</div>
       <div>
-        <div class="topbar-title">Agente Inteligente <span>BVL</span></div>
-        <div class="topbar-sub">Sistema Experto de Inversiones · UPAO 2026 · Dr. Sagastegui</div>
+        <div class="logo-name"><span>Pfinance</span> BVL</div>
       </div>
     </div>
-    <div id="live-badge" class="live-badge">
-      <div class="live-dot"></div>
-      <span id="live-text">Verificando...</span>
+    <span class="logo-tag">SISTEMA EXPERTO · UPAO 2026</span>
+        <div class="topbar-nav">
+      <a href="/chat" class="nav-btn">💬 Chat</a>
+      <a href="/dashboard" class="nav-btn active">📊 Dashboard</a>
     </div>
   </div>
+  <div class="topbar-right">
+    <div class="perfil-wrap" style="flex-direction:row;align-items:center;">
+      <span class="ctrl-label" style="margin:0;">PERFIL</span>
+      <select class="perfil-select" id="sel-perfil" onchange="cambiarPerfil(this.value)">
+        <option value="Conservador">🛡️ Conservador</option>
+        <option value="Moderado" selected>⚖️ Moderado</option>
+        <option value="Agresivo">⚡ Agresivo</option>
+      </select>
+    </div>
+    <div class="status-pill">
+      <div class="sdot" id="sdot"></div>
+      <span id="stext">Verificando...</span>
+    </div>
+  </div>
+</div>
+
+<!-- TICKER BAR -->
+<div class="ticker-bar">
+  <div class="ticker-track" id="ticker-track">
+    <div class="ticker-item"><span class="t-name">Cargando precios...</span></div>
+  </div>
+</div>
+
+<!-- CONTAINER -->
+<div class="container">
 
   <!-- CONTROLS -->
   <div class="controls">
-
     <div class="ctrl-group">
-      <label>Activos a analizar</label>
-      <div class="activos-grid" id="activos-grid">
-        <!-- Se llena dinámicamente -->
-      </div>
+      <div class="ctrl-label">Activos a analizar</div>
+      <div class="activos-grid" id="activos-grid"></div>
     </div>
-
     <div class="perfil-wrap">
-      <label style="font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Perfil de riesgo</label>
+      <div class="ctrl-label">Perfil de riesgo</div>
       <select class="perfil-select" id="sel-perfil" onchange="cambiarPerfil(this.value)">
-        <option value="Conservador">Conservador</option>
-        <option value="Moderado" selected>Moderado</option>
-        <option value="Agresivo">Agresivo</option>
+        <option value="Conservador">🛡️ Conservador</option>
+        <option value="Moderado" selected>⚖️ Moderado</option>
+        <option value="Agresivo">⚡ Agresivo</option>
       </select>
       <div id="perfil-msg" class="perfil-msg moderado">
-        Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2% y prefiere activos con historial estable.
+        Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2%.
       </div>
     </div>
-
-    <button class="btn-analizar" onclick="analizar()">🔍 Analizar Mercado</button>
-
+    <button class="btn-analizar" onclick="analizar()">⚡ Analizar Mercado</button>
   </div>
 
   <!-- LOADING -->
   <div id="loading" class="loading">
     <div class="spinner"></div>
-    <span>Consultando backend API...</span>
+    <span>Consultando API...</span>
   </div>
 
   <!-- DASHBOARD -->
   <div id="dashboard" style="display:none;">
 
-    <!-- Info panel -->
     <div class="info-panel">
-      <div class="info-item"><div class="info-dot"></div><span id="info-activos">— activos analizados</span></div>
-      <div class="info-item"><span id="info-reglas">— reglas activadas</span></div>
-      <div class="info-item">Perfil: <strong id="info-perfil" style="color:var(--text);">—</strong></div>
+      <div class="info-item"><div class="info-dot"></div><span id="info-activos">—</span></div>
+      <div class="info-item"><span id="info-reglas">—</span></div>
+      <div class="info-item">PERFIL: <strong id="info-perfil" style="color:var(--text);margin-left:4px;">—</strong></div>
       <div class="info-item"><span id="info-hora">—</span></div>
     </div>
 
-    <!-- Métricas -->
-    <div class="sec-title">Precios en tiempo real — Bolsa de Valores de Lima</div>
+    <div class="sec-label">Precios en tiempo real — Bolsa de Valores de Lima</div>
     <div id="metrics-grid" class="metrics-grid"></div>
 
-    <!-- Gráficas -->
     <div class="charts-row">
       <div class="chart-card">
-        <div class="chart-title">Crecimiento % por empresa</div>
-        <canvas id="bar-chart" height="120"></canvas>
+        <div class="chart-title">Variación % del día por empresa</div>
+        <canvas id="bar-chart" height="110"></canvas>
       </div>
       <div class="chart-card">
         <div class="chart-title">Distribución de cartera</div>
-        <canvas id="donut-chart" height="120"></canvas>
+        <canvas id="donut-chart" height="110"></canvas>
       </div>
     </div>
 
-    <!-- Tabs -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('clips', this)">Motor CLIPS</button>
-      <button class="tab-btn" onclick="switchTab('ia', this)">Análisis IA</button>
+      <button class="tab-btn active" onclick="switchTab('clips', this)">📋 Motor CLIPS — Reglas activadas</button>
+      <button class="tab-btn" onclick="switchTab('ia', this)">🤖 Análisis IA — Gemini Transformer</button>
     </div>
 
-    <!-- TAB CLIPS -->
     <div id="tab-clips" class="tab-content active">
       <div id="clips-meta" class="clips-meta"></div>
       <div id="rules-list" class="rules-list"></div>
-
-      <div class="lisp-title">🔮 Hechos LISP Generados — data/hechos_mercado.lisp</div>
-      <div class="code-block"><pre id="lisp-code">-- Ejecuta un análisis para ver los hechos generados --</pre></div>
     </div>
 
-    <!-- TAB IA -->
     <div id="tab-ia" class="tab-content">
-      <p style="color:var(--muted);font-size:.85rem;margin-bottom:14px;">
-        El agente consulta el backend FastAPI que orquesta Gemini AI para generar un análisis narrativo del portafolio.
+      <p style="color:var(--muted);font-size:.8rem;margin-bottom:14px;line-height:1.6;font-family:'JetBrains Mono',monospace;">
+        Pipeline: MarketSensor → Few-shot + CoT → Clasificación Text-to-Text (BULLISH/BEARISH/NEUTRAL) → Análisis narrativo · Modelo: Gemini 2.5 Flash Lite
       </p>
-      <button class="btn-ia" id="btn-ia" onclick="generarIA()">
-        ✨ Generar Opinión Estratégica
-      </button>
+      <button class="btn-ia" onclick="generarIA()">✦ Ejecutar análisis Transformer del portafolio</button>
       <div id="ia-output"></div>
     </div>
 
   </div>
-
 </div>
 
 <footer class="footer">
-  Sistema Experto BVL · UPAO 2026 · Dr. Sagastegui Chigne ·
-  Python + FastAPI + HTML5 + CSS3 + JavaScript + CLIPS + LISP
+  SISTEMA EXPERTO BVL · UPAO 2026 · Python 3.12 + FastAPI + Gemini Transformer + CLIPS + Chart.js
 </footer>
 
 <script>
 const API = 'http://127.0.0.1:8000';
 let barChart = null, donutChart = null;
-let tickersMap = {}; // {ticker: nombre}
-let ultimosTickers = [];
-let ultimoPerfil = 'Moderado';
+let tickersMap = {}, ultimosTickers = [], ultimoPerfil = 'Moderado';
 
-// ── Mensajes por perfil ──
 const PERFIL_MSGS = {
-  Conservador: 'Prioriza la seguridad del capital. Solo activos estables con baja volatilidad. Evita caídas mayores a 1.5%.',
-  Moderado:    'Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2% y prefiere activos con historial estable.',
-  Agresivo:    'Maximiza el retorno asumiendo mayor riesgo. Apto para horizontes de inversión largos y alta tolerancia a la volatilidad.'
+  Conservador: 'Prioriza seguridad del capital. Activos estables, baja volatilidad, caídas máx. 1.5%.',
+  Moderado:    'Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2%.',
+  Agresivo:    'Maximiza retorno asumiendo mayor riesgo. Horizonte largo, alta tolerancia a volatilidad.'
 };
+const PERFIL_CLS = {Conservador:'conservador',Moderado:'moderado',Agresivo:'agresivo'};
 
-const PERFIL_CLS = {
-  Conservador: 'conservador',
-  Moderado:    'moderado',
-  Agresivo:    'agresivo'
-};
-
-// ── Al cargar ──
 document.addEventListener('DOMContentLoaded', async () => {
   await checkBackend();
   await cargarTickers();
+  await cargarTickerBar();
 });
 
-// ── Verificar backend ──
 async function checkBackend() {
-  const badge = document.getElementById('live-badge');
-  const text  = document.getElementById('live-text');
   try {
-    const r = await fetch(`${API}/`, { signal: AbortSignal.timeout(4000) });
+    const r = await fetch(`${API}/`, {signal:AbortSignal.timeout(4000)});
     const d = await r.json();
     if (d.status === 'ok') {
-      text.textContent = 'Backend activo';
-      badge.classList.remove('offline');
+      document.getElementById('stext').textContent = 'Sistema activo';
     }
   } catch {
-    text.textContent = 'Backend offline — corre: uvicorn backend.main:app --reload';
-    badge.classList.add('offline');
+    document.getElementById('sdot').classList.add('offline');
+    document.getElementById('stext').textContent = 'Backend offline';
   }
 }
 
-// ── Cargar tickers ──
+async function cargarTickerBar() {
+  try {
+    const r    = await fetch(`${API}/activos`);
+    const data = await r.json();
+    const html = data.map(a => {
+      const up  = a.crecimiento >= 0;
+      return `<div class="ticker-item">
+        <span class="t-name">${a.empresa.toUpperCase()}</span>
+        <span class="t-price">S/. ${a.precio}</span>
+        <span class="${up?'t-up':'t-dn'}">${up?'▲':'▼'}${Math.abs(a.crecimiento)}%</span>
+      </div>`;
+    }).join('');
+    const track = document.getElementById('ticker-track');
+    track.innerHTML = html + html; // duplicar para loop
+  } catch { /* silencioso */ }
+}
+
 async function cargarTickers() {
   try {
     const r = await fetch(`${API}/tickers`);
@@ -351,23 +516,23 @@ async function cargarTickers() {
     grid.innerHTML = '';
     const defaultSel = Object.keys(tickersMap).slice(0, 3);
     for (const [ticker, nombre] of Object.entries(tickersMap)) {
-      const sel = defaultSel.includes(ticker);
+      const sel  = defaultSel.includes(ticker);
       const item = document.createElement('div');
       item.className = 'activo-item' + (sel ? ' selected' : '');
       item.dataset.ticker = ticker;
-      item.onclick = () => item.classList.toggle('selected');
-      item.innerHTML = `
-        <div class="activo-check"></div>
-        <span class="activo-label">${nombre}</span>`;
+      item.innerHTML = `<div class="activo-check">${sel?'✓':''}</div><span class="activo-label">${nombre}</span>`;
+      item.onclick = () => {
+        item.classList.toggle('selected');
+        item.querySelector('.activo-check').textContent = item.classList.contains('selected') ? '✓' : '';
+      };
       grid.appendChild(item);
     }
-  } catch(e) {
+  } catch {
     document.getElementById('activos-grid').innerHTML =
-      '<p style="color:var(--muted);font-size:.8rem;">Error al cargar tickers. Verifica el backend.</p>';
+      '<p style="color:var(--muted);font-size:.78rem;">Error al cargar.</p>';
   }
 }
 
-// ── Cambiar perfil ──
 function cambiarPerfil(perfil) {
   const el = document.getElementById('perfil-msg');
   el.className = 'perfil-msg ' + PERFIL_CLS[perfil];
@@ -375,11 +540,9 @@ function cambiarPerfil(perfil) {
   ultimoPerfil = perfil;
 }
 
-// ── Analizar ──
 async function analizar() {
-  const selItems = document.querySelectorAll('.activo-item.selected');
-  const tickers  = Array.from(selItems).map(i => i.dataset.ticker).filter(Boolean);
-
+  const tickers = Array.from(document.querySelectorAll('.activo-item.selected'))
+    .map(i => i.dataset.ticker).filter(Boolean);
   if (!tickers.length) { alert('Selecciona al menos un activo.'); return; }
 
   ultimosTickers = tickers;
@@ -394,114 +557,94 @@ async function analizar() {
       fetch(`${API}/activos?tickers=${ts}`).then(r => r.json()),
       fetch(`${API}/reglas?tickers=${ts}&perfil=${ultimoPerfil}`).then(r => r.json())
     ]);
-
     renderMetricas(rA);
     renderGraficas(rA);
     renderReglas(rR, ultimoPerfil);
-    renderLisp(rA);
     actualizarInfoPanel(rA, rR);
-
     document.getElementById('ia-output').innerHTML = '';
     document.getElementById('dashboard').style.display = 'block';
-
   } catch(e) {
-    alert('Error al conectar con el backend: ' + e.message);
+    alert('Error: ' + e.message);
   } finally {
     document.getElementById('loading').classList.remove('show');
   }
 }
 
-// ── Info panel ──
 function actualizarInfoPanel(activos, reglas) {
   document.getElementById('info-activos').textContent = `${activos.length} activos analizados`;
-  document.getElementById('info-reglas').textContent = `${reglas.length} reglas activadas`;
-  document.getElementById('info-perfil').textContent = ultimoPerfil;
-  const now = new Date();
-  document.getElementById('info-hora').textContent =
-    `Actualizado ${now.toLocaleTimeString('es-PE')}`;
+  document.getElementById('info-reglas').textContent  = `${reglas.length} reglas CLIPS activadas`;
+  document.getElementById('info-perfil').textContent  = ultimoPerfil;
+  document.getElementById('info-hora').textContent    = new Date().toLocaleTimeString('es-PE');
 }
 
-// ── Métricas ──
 function renderMetricas(activos) {
   document.getElementById('metrics-grid').innerHTML = activos.map(a => {
     const up  = a.crecimiento >= 0;
-    const cls = a.crecimiento >= 1 ? 'up-card' : a.crecimiento <= -2 ? 'dn-card' : '';
-    return `
-    <div class="mcard ${cls}">
+    const cls = a.crecimiento >= 1 ? 'up-card' : a.crecimiento <= -1 ? 'dn-card' : '';
+    return `<div class="mcard ${cls}">
       <div class="mlabel">${a.empresa}</div>
       <div class="mval">S/. ${a.precio}</div>
       <div class="mdelta ${up?'up':'dn'}">${up?'▲':'▼'} ${Math.abs(a.crecimiento)}%</div>
-      <div class="msector">${a.sector}</div>
+      <div class="msector">${a.sector} · ${a.ticker}</div>
     </div>`;
   }).join('');
 }
 
-// ── Gráficas ──
 function renderGraficas(activos) {
   const labels  = activos.map(a => a.empresa);
   const valores = activos.map(a => a.crecimiento);
   const precios = activos.map(a => a.precio);
-  const bgPos   = 'rgba(0,196,122,.7)', bgNeg = 'rgba(226,75,74,.6)';
-  const brPos   = '#00c47a', brNeg = '#e24b4a';
-  const COLORS  = ['#00c47a','#378add','#c9a500','#e24b4a','#a855f7','#ff6b35','#4ecdc4'];
+  const COLORS  = ['#2979ff','#00e5ff','#00e676','#ffd740','#ff6d00','#ea80fc','#ff1744'];
 
-  if (barChart)   { barChart.destroy(); }
-  if (donutChart) { donutChart.destroy(); }
+  if (barChart)   barChart.destroy();
+  if (donutChart) donutChart.destroy();
 
   barChart = new Chart(document.getElementById('bar-chart'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: valores,
-        backgroundColor: valores.map(v => v >= 0 ? bgPos : bgNeg),
-        borderColor:     valores.map(v => v >= 0 ? brPos : brNeg),
-        borderWidth: 1.5, borderRadius: 5, borderSkipped: false
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#141b2d', titleColor: '#e8eaf6',
-          bodyColor: '#00c47a', borderColor: '#1e2a42', borderWidth: 1,
-          callbacks: { label: c => ` ${c.parsed.y.toFixed(2)}%  |  S/. ${precios[c.dataIndex]}` }
+    type:'bar',
+    data:{labels,datasets:[{
+      data:valores,
+      backgroundColor:valores.map(v=>v>=0?'rgba(41,121,255,.5)':'rgba(255,23,68,.5)'),
+      borderColor:valores.map(v=>v>=0?'#2979ff':'#ff1744'),
+      borderWidth:1,borderRadius:4,borderSkipped:false
+    }]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#141414',titleColor:'#f5f5f5',
+          bodyColor:'#00e5ff',borderColor:'#2a2a2a',borderWidth:1,
+          callbacks:{label:c=>` ${c.parsed.y.toFixed(2)}%  ·  S/. ${precios[c.dataIndex]}`}
         }
       },
-      scales: {
-        x: { ticks: { color: '#6c7a95', font: { size: 11 } }, grid: { color: '#1e2a42' } },
-        y: { beginAtZero: true, ticks: { color: '#6c7a95', callback: v => v + '%' }, grid: { color: '#1e2a42' } }
+      scales:{
+        x:{ticks:{color:'#606060',font:{size:10,family:'JetBrains Mono'}},grid:{color:'#1a1a1a'}},
+        y:{beginAtZero:true,ticks:{color:'#606060',font:{family:'JetBrains Mono'},callback:v=>v+'%'},grid:{color:'#1a1a1a'}}
       }
     }
   });
 
   donutChart = new Chart(document.getElementById('donut-chart'), {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{
-        data: valores.map(Math.abs),
-        backgroundColor: COLORS,
-        borderColor: '#0e1420', borderWidth: 3, hoverOffset: 5
-      }]
-    },
-    options: {
-      responsive: true, cutout: '67%',
-      plugins: {
-        legend: { position: 'bottom', labels: { color: '#6c7a95', font: { size: 10 }, boxWidth: 9, padding: 8 } },
-        tooltip: { backgroundColor: '#141b2d', titleColor: '#e8eaf6', bodyColor: '#ffd700', borderColor: '#1e2a42', borderWidth: 1 }
+    type:'doughnut',
+    data:{labels,datasets:[{
+      data:valores.map(Math.abs),
+      backgroundColor:COLORS,
+      borderColor:'#141414',borderWidth:3,hoverOffset:5
+    }]},
+    options:{
+      responsive:true,cutout:'70%',
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#606060',font:{size:9,family:'JetBrains Mono'},boxWidth:8,padding:8}},
+        tooltip:{backgroundColor:'#141414',titleColor:'#f5f5f5',bodyColor:'#ffd740',borderColor:'#2a2a2a',borderWidth:1}
       }
     }
   });
 }
 
-// ── Reglas CLIPS ──
 function renderReglas(reglas, perfil) {
   document.getElementById('clips-meta').textContent =
-    `Perfil: ${perfil} · ${reglas.length} regla(s) activadas · 90 reglas totales · vía API /reglas`;
-
-  document.getElementById('rules-list').innerHTML = reglas.map(r => `
+    `PERFIL: ${perfil.toUpperCase()} · ${reglas.length} reglas activadas · Motor: ClipsRulesEngine v2.0 · 90 reglas totales`;
+  document.getElementById('rules-list').innerHTML = reglas.map(r=>`
     <div class="rule-card" style="border-left-color:${r.color}">
       <div class="rule-icon">${r.icono}</div>
       <div>
@@ -512,44 +655,39 @@ function renderReglas(reglas, perfil) {
     </div>`).join('');
 }
 
-// ── LISP ──
-function renderLisp(activos) {
-  let s = `<span class="cm">; hechos_mercado.lisp — generado automáticamente por MarketSensor</span>\n`;
-  s    += `<span class="cm">; Sistema Experto BVL · UPAO 2026</span>\n\n`;
-  s    += `(<span class="kw">setq</span> <span class="fn">hechos-mercado</span> <span class="str">'</span>(\n`;
-  activos.forEach(a => {
-    const c = a.crecimiento >= 0 ? '#00c47a' : '#e24b4a';
-    s += `  (<span class="str">"${a.empresa}"</span> `;
-    s += `<span class="nm">${a.precio}</span> `;
-    s += `<span style="color:${c}">${a.crecimiento}</span> `;
-    s += `<span class="str">"${a.sector}"</span>)\n`;
-  });
-  s += `))\n`;
-  document.getElementById('lisp-code').innerHTML = s;
+function markdownAHtml(texto) {
+  return texto
+    .replace(/^\s*\*{0,2}(\d+\.\s+[^\n]+)\*{0,2}/gm,(_,t)=>`<h2>${t.replace(/\*\*/g,'').trim()}</h2>`)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/(?<!\n)\*(?!\s)(.+?)\*/g,'<em>$1</em>')
+    .replace(/^[\*\-]\s+(.+)$/gm,'<li>$1</li>')
+    .replace(/((?:<li>[\s\S]*?<\/li>\s*)+)/g,'<ul>$1</ul>')
+    .split('\n').map(line=>{
+      const t=line.trim();
+      if(!t) return '';
+      if(t.startsWith('<h2>')||t.startsWith('<ul>')||t.startsWith('<li>')||t.startsWith('<p>')) return t;
+      return `<p>${t}</p>`;
+    }).filter(Boolean).join('\n');
 }
 
-// ── Análisis IA ──
 async function generarIA() {
   if (!ultimosTickers.length) { alert('Primero analiza el mercado.'); return; }
-
   const output = document.getElementById('ia-output');
-  output.innerHTML = '<div class="ia-loading"><div class="spinner"></div> Consultando Gemini AI vía backend...</div>';
-
+  output.innerHTML = '<div class="ia-loading"><div class="spinner"></div> Procesando con Gemini Transformer...</div>';
   try {
     const r = await fetch(`${API}/analisis-ia?tickers=${ultimosTickers.join(',')}&perfil=${ultimoPerfil}`);
     const d = await r.json();
-    output.innerHTML = `<div class="ia-output">${d.analisis}</div>`;
+    output.innerHTML = `<div class="ia-output">${markdownAHtml(d.analisis)}</div>`;
   } catch(e) {
-    output.innerHTML = `<div style="color:var(--red);padding:16px;">❌ Error: ${e.message}</div>`;
+    output.innerHTML = `<div style="color:var(--red);padding:16px;font-family:'JetBrains Mono',monospace;font-size:.8rem;">ERROR: ${e.message}</div>`;
   }
 }
 
-// ── Tabs ──
 function switchTab(name, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
 }
 </script>
 </body>

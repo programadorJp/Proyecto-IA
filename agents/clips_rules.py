@@ -398,7 +398,7 @@ class ClipsRulesEngine:
             "nombre": "PRECIO_MEDIO",
             "condicion": lambda f, p: 10.0 <= f["Precio"] < 50.0,
             "accion": "PRECIO MEDIO — Rango accesible, buena liquidez típicamente",
-            "icono": "📈", "color": "#6c7a95", "prioridad": 4
+            "icono": "⚖️", "color": "#6c7a95", "prioridad": 4
         },
         {
             "id": "R54", "categoria": "Precio",

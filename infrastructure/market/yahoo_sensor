@@ -1,0 +1,150 @@
+"""Versión async de MarketSensor.
+El original en agents/ queda intacto para no romper imports existentes.
+"""
+import asyncio
+import logging
+import os
+from functools import partial
+
+import pandas as pd
+import yfinance as yf
+
+logger = logging.getLogger(__name__)
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+
+# Mismos datos que tu original — no cambia la lógica de negocio
+_ACTIVOS = {
+    'ALICORC1.LM': 'Alicorp',
+    'BBVAC1.LM':   'BBVA Perú',
+    'CPACASC1.LM': 'Cementos Pacasmayo',
+    'FERREYC1.LM': 'Ferreycorp',
+    'VOLCABC1.LM': 'Volcan Minera',
+    'BAP':         'Credicorp (BCP)',
+    'SCCO':        'Southern Copper',
+}
+
+_RESPALDO = {
+    'ALICORC1.LM': (8.45,   1.20),
+    'BBVAC1.LM':   (5.30,  -0.75),
+    'CPACASC1.LM': (4.80,   0.42),
+    'FERREYC1.LM': (2.95,   2.10),
+    'VOLCABC1.LM': (0.48,  -1.50),
+    'BAP':         (185.20, 0.85),
+    'SCCO':        (98.60,  1.35),
+}
+
+
+def _fetch_ticker_sync(ticker: str) -> tuple[float, float, str]:
+    """
+    Síncrono — se ejecuta en ThreadPoolExecutor.
+    Misma lógica que tu _precio_yfinance original.
+    """
+    try:
+        df = yf.download(
+            ticker, period="5d", interval="1d",
+            progress=False, auto_adjust=True, timeout=8
+        )
+        if df is None or df.empty:
+            raise ValueError("Empty response")
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        col = next((c for c in df.columns if 'close' in str(c).lower()), None)
+        if col is None:
+            raise ValueError("No close column")
+
+        serie = df[col].dropna()
+        if len(serie) < 1:
+            raise ValueError("Empty series")
+
+        actual = float(serie.iloc[-1])
+        cambio = 0.0
+        if len(serie) >= 2:
+            ant = float(serie.iloc[-2])
+            if ant > 0:
+                cambio = round(((actual - ant) / ant) * 100, 2)
+
+        return round(actual, 2), cambio, "BVL Real-Time"
+
+    except Exception as exc:
+        logger.debug("yfinance falló para %s: %s — usando respaldo", ticker, exc)
+        precio, cambio = _RESPALDO.get(ticker, (10.0, 0.0))
+        return precio, cambio, "Demo"
+
+
+class AsyncMarketSensor:
+    """
+    Versión async de MarketSensor.
+    Usa run_in_executor para no bloquear el event loop de FastAPI.
+    Semáforo en 5 para no saturar Yahoo Finance.
+    """
+
+    def __init__(self) -> None:
+        self.activos = _ACTIVOS
+        self._semaphore = asyncio.Semaphore(5)
+
+    async def _fetch_one(self, ticker: str) -> dict:
+        async with self._semaphore:
+            loop = asyncio.get_running_loop()
+            precio, cambio, sector = await loop.run_in_executor(
+                None, partial(_fetch_ticker_sync, ticker)
+            )
+        return {
+            "Empresa":       self.activos.get(ticker, ticker),
+            "Ticker":        ticker,
+            "Precio":        precio,
+            "Crecimiento_%": cambio,
+            "Sector":        sector,
+        }
+
+    async def percibir_mercado_async(
+        self, lista_tickers: list[str] | None = None
+    ) -> pd.DataFrame:
+        tickers = lista_tickers or list(self.activos.keys())
+
+        # Todos los tickers en paralelo, semáforo controla concurrencia
+        tasks = [self._fetch_one(t) for t in tickers]
+        resultados = await asyncio.gather(*tasks, return_exceptions=True)
+
+        datos = []
+        for ticker, resultado in zip(tickers, resultados):
+            if isinstance(resultado, Exception):
+                logger.error("Error inesperado para %s: %s", ticker, resultado)
+                precio, cambio = _RESPALDO.get(ticker, (10.0, 0.0))
+                datos.append({
+                    "Empresa":       self.activos.get(ticker, ticker),
+                    "Ticker":        ticker,
+                    "Precio":        precio,
+                    "Crecimiento_%": cambio,
+                    "Sector":        "Demo",
+                })
+            else:
+                datos.append(resultado)
+
+        return pd.DataFrame(datos) if datos else pd.DataFrame()
+
+    async def exportar_hechos_lisp_async(self, df: pd.DataFrame) -> str:
+        """Mismo comportamiento que tu original, pero no bloquea el loop."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, partial(self._escribir_lisp, df)
+        )
+
+    @staticmethod
+    def _escribir_lisp(df: pd.DataFrame) -> str:
+        base = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'data')
+        )
+        os.makedirs(base, exist_ok=True)
+        ruta = os.path.join(base, 'hechos_mercado.lisp')
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write("; hechos_mercado.lisp — generado automáticamente\n")
+            f.write("(setq hechos-mercado '(\n")
+            for _, fila in df.iterrows():
+                f.write(
+                    f'  ("{fila["Empresa"]}" {fila["Precio"]} '
+                    f'{fila["Crecimiento_%"]} "{fila["Sector"]}")\n'
+                )
+            f.write("))\n")
+        return ruta
