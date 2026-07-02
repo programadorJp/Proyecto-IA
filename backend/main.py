@@ -1,6 +1,6 @@
 """backend/main.py — API REST con FastAPI
-Expone los agentes del proyecto como endpoints HTTP
-y sirve el dashboard HTML/CSS/JS desde /frontend"""
+Sistema con API Key centralizada para todos los usuarios
+"""
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -11,8 +11,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
-import sys, os, requests
+import sys, os
 import pandas as pd
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from agents.market_sensor              import MarketSensor
 from agents.clips_rules                import ClipsRulesEngine
@@ -26,6 +27,15 @@ from agents.advanced_intelligent_agent import AdvancedIntelligentAgent
 from agents.news_analyzer              import NewsAnalyzer
 from agents.prediction_engine          import PredictionEngine
 
+# ── Verificar API Key ──
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if not GEMINI_API_KEY:
+    raise ValueError("❌ ERROR: GEMINI_API_KEY no configurada en .env")
+else:
+    print(f"✅ API Key de Gemini configurada correctamente")
+    # Mostrar solo primeros 10 caracteres por seguridad
+    print(f"🔑 Key: {GEMINI_API_KEY[:10]}...")
+
 # ── App ──
 app = FastAPI(
     title="Agente BVL — API",
@@ -36,39 +46,38 @@ app = FastAPI(
 # ── CORS ──
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Permite cualquier origen (público)
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Ruta a la carpeta frontend ──
+# ── Ruta frontend ──
 FRONTEND_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'frontend')
 )
 
-# ── Montar carpeta frontend ──
 app.mount(
     "/frontend",
     StaticFiles(directory=FRONTEND_DIR),
     name="frontend"
 )
 
-# ── Agentes ──
+# ── Agentes (todos usan la API key del .env) ──
 sensor          = MarketSensor()
 clips           = ClipsRulesEngine()
 agente          = IntelligentAgent()
 recomendaciones = RecommendationsEngine()
 agente_avanzado = AdvancedIntelligentAgent()
 
-# ── Brain lazy — se instancia en el primer uso, cuando .env ya está cargado ──
+# ── Brain con la API key del dueño ──
 _brain = None
 
 def get_brain() -> ExpertBrain:
+    """Instancia única de ExpertBrain usando la API key del dueño"""
     global _brain
     if _brain is None:
-        _brain = ExpertBrain()
+        _brain = ExpertBrain()  # Usa GEMINI_API_KEY del .env
     return _brain
-
 
 # ── MODELOS ──
 
@@ -97,57 +106,13 @@ class AnalisisResponse(BaseModel):
     analisis_ia: Optional[str] = None
 
 class ChatMessage(BaseModel):
-    role: str        # "user" o "assistant"
+    role: str
     content: str
 
 class ChatRequest(BaseModel):
     message: str
     history: List[ChatMessage] = []
     perfil: str = "Moderado"
-
-@app.post("/chat", tags=["Chat"])
-def chat(req: ChatRequest):
-    brain = get_brain()
-    
-    # Construir historial para el prompt
-    historial_texto = ""
-    for msg in req.history[-6:]:  # últimos 6 mensajes para no exceder tokens
-        rol = "Usuario" if msg.role == "user" else "Pfinance"
-        historial_texto += f"{rol}: {msg.content}\n"
-    
-    # Obtener contexto de mercado actual
-    df = sensor.percibir_mercado()
-    resumen_mercado = "\n".join([
-        f"• {row['Empresa']} ({row['Ticker']}): S/. {row['Precio']} "
-        f"({'▲' if row['Crecimiento_%'] >= 0 else '▼'} {abs(row['Crecimiento_%'])}%)"
-        for _, row in df.iterrows()
-    ])
-    
-    prompt = f"""
-Eres Pfinance, un asesor financiero peruano experto en la BVL con 15 años de experiencia.
-Eres cercano, directo y honesto. Respondes como si hablaras con un amigo que quiere invertir.
-
-PRECIOS ACTUALES DEL MERCADO:
-{resumen_mercado}
-
-HISTORIAL DE CONVERSACIÓN:
-{historial_texto if historial_texto else "Esta es la primera consulta."}
-
-Usuario: {req.message}
-
-Responde como Pfinance de forma natural y conversacional.
-- Si preguntan por una empresa específica, analízala con los datos del mercado.
-- Si piden comparación, compara directamente.
-- Si piden recomendación por perfil ({req.perfil}), adáptate a ese perfil.
-- Si preguntan precios, usa los datos actuales de arriba.
-- Máximo 300 palabras. Sin tecnicismos innecesarios.
-- Recuerda el contexto de la conversación anterior.
-
-Pfinance:"""
-
-    respuesta = brain._generar(prompt)
-    return {"response": respuesta, "perfil": req.perfil}
-
 
 # ── ENDPOINTS ──
 
@@ -157,8 +122,8 @@ def root():
         "status": "ok",
         "proyecto": "Sistema Experto BVL — UPAO 2026",
         "dashboard": "http://127.0.0.1:8000/dashboard",
-        "docs":      "http://127.0.0.1:8000/docs",
-        "endpoints": ["/activos", "/reglas", "/analisis", "/analisis-ia", "/tickers", "/ficha/{ticker}"]
+        "docs": "http://127.0.0.1:8000/docs",
+        "modo": "API Key centralizada (dueño del sistema)"
     }
 
 @app.get("/dashboard", response_class=HTMLResponse, tags=["Info"])
@@ -211,6 +176,7 @@ def get_analisis_ia(
     tickers: Optional[str] = Query(default=None),
     perfil:  str = Query(default="Moderado")
 ):
+    """Análisis con IA usando la API key del dueño del sistema"""
     lista = tickers.split(",") if tickers else list(sensor.activos.keys())[:3]
     df    = sensor.percibir_mercado(lista)
     texto = get_brain().procesar_estrategia(df)
@@ -256,7 +222,7 @@ def get_recomendaciones(ticker: str):
         "ticker":       ticker,
         "empresa":      sensor.activos[ticker],
         "score_final":  reporte['score_final'],
-        "recomendacion":reporte['recomendacion'],
+        "recomendacion": reporte['recomendacion'],
         "confianza":    reporte['confianza'],
         "scores": {
             "tecnico":     reporte['score_tecnico'],
@@ -368,7 +334,7 @@ def get_estado_mercado():
                 "empresa":    row['Empresa'],
                 "ticker":     row['Ticker'],
                 "precio":     row['Precio'],
-                "crecimiento":row['Crecimiento_%']
+                "crecimiento": row['Crecimiento_%']
             } for _, row in df.iterrows()
         ]
     }
@@ -382,7 +348,7 @@ def get_analisis_conversacional(ticker: str):
         return {
             "ticker":  ticker,
             "empresa": sensor.activos[ticker],
-            "analisis":respuesta,
+            "analisis": respuesta,
             "tipo":    "conversacional_detallado"
         }
     except Exception as e:
@@ -403,7 +369,7 @@ def comparar_conversacional(req: AnalisisRequest):
     respuesta = agente_avanzado.comparar_empresas_conversacional(req.tickers)
     return {
         "tickers":    req.tickers,
-        "comparacion":respuesta,
+        "comparacion": respuesta,
         "tipo":       "comparativo_conversacional"
     }
 
@@ -461,8 +427,96 @@ def get_catalistas(ticker: str):
         "balance": catalistas.get('balance', 0)
     }
 
+# ── NUEVO ENDPOINT: Chat Público (USA TU API KEY) ──
+@app.post("/chat", tags=["Chat"])
+def chat(req: ChatRequest):
+    """Chat público - TODOS los usuarios usan la API key del dueño"""
+    
+    brain = get_brain()  # Usa TU API key del .env
+    
+    # Construir historial
+    historial_texto = ""
+    for msg in req.history[-6:]:
+        rol = "Usuario" if msg.role == "user" else "Pfinance"
+        historial_texto += f"{rol}: {msg.content}\n"
+    
+    # Obtener contexto del mercado
+    df = sensor.percibir_mercado()
+    resumen_mercado = "\n".join([
+        f"• {row['Empresa']} ({row['Ticker']}): S/. {row['Precio']:.2f} "
+        f"({'▲' if row['Crecimiento_%'] >= 0 else '▼'} {abs(row['Crecimiento_%']):.2f}%)"
+        for _, row in df.iterrows()
+    ])
+    
+    prompt = f"""
+Eres Pfinance, un asesor financiero peruano experto en la BVL con 15 años de experiencia.
+Eres cercano, directo y honesto. Respondes como si hablaras con un amigo que quiere invertir.
+
+PRECIOS ACTUALES DEL MERCADO:
+{resumen_mercado}
+
+HISTORIAL DE CONVERSACIÓN:
+{historial_texto if historial_texto else "Esta es la primera consulta."}
+
+Usuario: {req.message}
+
+Responde como Pfinance de forma natural y conversacional.
+- Si preguntan por una empresa específica, analízala con los datos del mercado.
+- Si piden comparación, compara directamente.
+- Si piden recomendación por perfil ({req.perfil}), adáptate a ese perfil.
+- Si preguntan precios, usa los datos actuales de arriba.
+- Máximo 300 palabras. Sin tecnicismos innecesarios.
+- Recuerda el contexto de la conversación anterior.
+
+Pfinance:"""
+
+    try:
+        respuesta = brain._generar(prompt)
+        return {
+            "response": respuesta,
+            "perfil": req.perfil,
+            "modo": "API Key centralizada (dueño del sistema)"
+        }
+    except Exception as e:
+        return {
+            "response": f"⚠️ Error generando respuesta: {str(e)}",
+            "perfil": req.perfil,
+            "modo": "error"
+        }
+
 @app.get("/chat", response_class=HTMLResponse, tags=["Chat"])
 def chat_page():
     chat_path = os.path.join(FRONTEND_DIR, "chat.html")
-    with open(chat_path, encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+    if os.path.exists(chat_path):
+        with open(chat_path, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    else:
+        return HTMLResponse("""
+        <h1>💬 Chat Interactivo</h1>
+        <p>El chat está disponible. Crea un archivo chat.html en la carpeta frontend/</p>
+        <p>O usa el endpoint POST /chat para enviar mensajes.</p>
+        """)
+
+# ── Endpoint de estado ──
+@app.get("/status", tags=["Info"])
+def get_status():
+    """Verifica el estado del sistema y la API key"""
+    return {
+        "status": "online",
+        "api_key_configured": bool(GEMINI_API_KEY),
+        "api_key_preview": GEMINI_API_KEY[:10] + "..." if GEMINI_API_KEY else None,
+        "modo": "Todos los usuarios usan la API key del sistema",
+        "endpoints_disponibles": [
+            "/",
+            "/dashboard",
+            "/chat",
+            "/activos",
+            "/reglas",
+            "/analisis-ia",
+            "/status"
+        ]
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
