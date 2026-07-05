@@ -1,4 +1,5 @@
 """conversational_response.py — Generador de Respuestas Conversacionales
+
 Crea respuestas naturales tipo humano usando análisis combinado."""
 
 from datetime import datetime
