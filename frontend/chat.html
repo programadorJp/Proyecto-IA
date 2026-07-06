@@ -1,141 +1,161 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pfinance — Asesor BVL</title>
-<link rel="stylesheet" href="/frontend/css/base.css">
-<link rel="stylesheet" href="/frontend/css/chat.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pfinance — Asesor BVL</title>
+  <!-- Font Awesome 6 (gratuito) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/frontend/css/base.css">
+  <link rel="stylesheet" href="/frontend/css/chat.css">
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-left">
-    <div class="logo">
-      <div class="logo-icon">PF</div>
-      <div>
-        <div class="logo-name"><span>Pfinance</span> BVL</div>
-      </div>
-    </div>
-    <span class="logo-tag">SISTEMA EXPERTO · UPAO 2026</span>
-  </div>
-  <div class="topbar-center">
-    <a href="/chat" class="nav-btn active">💬 Chat</a>
-    <a href="/dashboard" class="nav-btn">📊 Dashboard</a>
-  </div>
-  <div class="topbar-right">
-    <div class="perfil-wrap-inline">
-      <span class="perfil-label">PERFIL</span>
-      <select class="perfil-select" id="sel-perfil">
-        <option value="Conservador">🛡️ Conservador</option>
-        <option value="Moderado" selected>⚖️ Moderado</option>
-        <option value="Agresivo">⚡ Agresivo</option>
-      </select>
-    </div>
-    <div class="status-pill">
-      <div class="sdot" id="status-dot"></div>
-      <span id="status-text">Conectando...</span>
-    </div>
-  </div>
-</div>
-
-<!-- TICKER BAR -->
-<div class="ticker-bar">
-  <div class="ticker-track" id="ticker-track">
-    <div class="ticker-item"><span class="t-name">Cargando...</span></div>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div class="main">
-
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-section">Accesos rápidos</div>
-    <div class="quick-btns">
-      <button class="quick-btn" onclick="enviarRapido('¿Cómo está el mercado BVL hoy?')">
-        <div class="qi">📊</div>Estado del mercado
-      </button>
-      <button class="quick-btn" onclick="enviarRapido('¿Qué empresa me recomiendas según mi perfil de inversión?')">
-        <div class="qi">🎯</div>Recomendación
-      </button>
-      <button class="quick-btn" onclick="enviarRapido('Compara Credicorp (BAP) con Southern Copper (SCCO)')">
-        <div class="qi">⚖️</div>Comparar empresas
-      </button>
-      <button class="quick-btn" onclick="enviarRapido('¿Cuáles son los precios actuales de todas las empresas?')">
-        <div class="qi">💰</div>Ver precios
-      </button>
-      <button class="quick-btn" onclick="enviarRapido('¿Qué empresas están subiendo hoy en la BVL?')">
-        <div class="qi">📈</div>Empresas al alza
-      </button>
-      <button class="quick-btn" onclick="enviarRapido('Dame un análisis completo del portafolio de la BVL')">
-        <div class="qi">🤖</div>Análisis IA
-      </button>
-    </div>
-
-    <hr class="sidebar-divider">
-    <div class="sidebar-section">Empresas BVL</div>
-    <div class="empresa-list" id="empresa-list"></div>
-
-    <!-- TOKEN COUNTER -->
-    <div class="token-counter">
-      <div class="token-header">
-        <span class="token-label">Tokens sesión</span>
-        <span class="token-val" id="tok-val">0</span>
-      </div>
-      <div class="token-bar-bg">
-        <div class="token-bar-fill" id="tok-bar" style="width:0%"></div>
-      </div>
-      <div class="token-sub">
-        <span id="tok-used">0 usados</span>
-        <span>1,500 req/día</span>
-      </div>
-    </div>
-
-    <div class="sidebar-footer">
-      <button class="btn-nueva" onclick="nuevaConversacion()">✦ Nueva conversación</button>
-    </div>
-  </div>
-
-  <!-- CHAT -->
-  <div class="chat-area">
-    <div class="messages" id="messages">
-      <div class="welcome" id="welcome">
-        <div class="welcome-logo">PF</div>
-        <div class="welcome-title">Hola, soy <span>Pfinance</span></div>
-        <div class="welcome-sub">Tu asesor financiero con IA para la Bolsa de Valores de Lima. Pregúntame sobre empresas, portafolios o estrategias de inversión.</div>
-        <div class="welcome-stats" id="welcome-stats">
-          <div class="wstat"><div class="wstat-val" id="ws-empresas">7</div><div class="wstat-label">Empresas BVL</div></div>
-          <div class="wstat"><div class="wstat-val" id="ws-reglas">90</div><div class="wstat-label">Reglas CLIPS</div></div>
-          <div class="wstat"><div class="wstat-val" id="ws-modelo">Gemini</div><div class="wstat-label">Motor IA</div></div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="/" class="logo">
+        <div class="logo-icon">PF</div>
+        <div>
+          <div class="logo-name"><span>Pfinance</span> BVL</div>
         </div>
-        <div class="welcome-chips">
-          <div class="chip" onclick="enviarRapido('¿Debo comprar Alicorp ahora?')">¿Compro Alicorp?</div>
-          <div class="chip" onclick="enviarRapido('¿Cómo está BBVA Perú hoy?')">BBVA Perú</div>
-          <div class="chip" onclick="enviarRapido('¿Cuál es la mejor acción para invertir S/. 1000?')">Invertir S/. 1000</div>
-          <div class="chip" onclick="enviarRapido('¿Qué es la BVL y cómo funciona?')">¿Qué es la BVL?</div>
-          <div class="chip" onclick="enviarRapido('¿Cuáles son las empresas más seguras de la BVL?')">Más seguras</div>
-        </div>
+      </a>
+      <span class="logo-tag">SISTEMA EXPERTO · UPAO 2026</span>
+    </div>
+    <nav class="topbar-nav">
+      <a href="/chat" class="nav-btn active"><i class="fa-solid fa-comment"></i> Chat</a>
+      <a href="/dashboard" class="nav-btn"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
+    </nav>
+    <div class="topbar-right">
+      <div class="perfil-wrap-inline">
+        <span class="perfil-label"><i class="fa-solid fa-user"></i> Perfil</span>
+        <select class="perfil-select" id="sel-perfil">
+          <option value="Conservador"><i class="fa-solid fa-shield"></i> Conservador</option>
+          <option value="Moderado" selected><i class="fa-solid fa-scale-balanced"></i> Moderado</option>
+          <option value="Agresivo"><i class="fa-solid fa-bolt"></i> Agresivo</option>
+        </select>
+      </div>
+      <div class="status-pill">
+        <div class="sdot" id="status-dot"></div>
+        <span id="status-text">Conectando...</span>
       </div>
     </div>
+  </header>
 
-    <div class="input-area">
-      <div class="input-box">
-        <textarea class="chat-input" id="chat-input" placeholder="Pregúntale algo a Pfinance..." rows="1"></textarea>
-        <button class="btn-send" id="btn-send" onclick="enviar()">
-          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  <!-- TICKER BAR -->
+  <div class="ticker-bar">
+    <div class="ticker-track" id="ticker-track">
+      <div class="ticker-item"><span class="t-name">Cargando...</span></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section"><i class="fa-solid fa-bolt"></i> Accesos rápidos</div>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="enviarRapido('¿Cómo está el mercado BVL hoy?')">
+          <span class="qi"><i class="fa-solid fa-chart-line"></i></span>
+          <span class="ql">Estado del mercado</span>
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('¿Qué empresa me recomiendas según mi perfil de inversión?')">
+          <span class="qi"><i class="fa-solid fa-bullseye"></i></span>
+          <span class="ql">Recomendación</span>
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('Compara Credicorp (BAP) con Southern Copper (SCCO)')">
+          <span class="qi"><i class="fa-solid fa-arrows-left-right"></i></span>
+          <span class="ql">Comparar empresas</span>
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('¿Cuáles son los precios actuales de todas las empresas?')">
+          <span class="qi"><i class="fa-solid fa-coins"></i></span>
+          <span class="ql">Ver precios</span>
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('¿Qué empresas están subiendo hoy en la BVL?')">
+          <span class="qi"><i class="fa-solid fa-arrow-up"></i></span>
+          <span class="ql">Empresas al alza</span>
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('Dame un análisis completo del portafolio de la BVL')">
+          <span class="qi"><i class="fa-solid fa-robot"></i></span>
+          <span class="ql">Análisis IA</span>
         </button>
       </div>
-      <div class="input-footer">
-        <span class="input-hint">↵ Enter para enviar · Shift+Enter nueva línea</span>
-        <span class="input-tokens" id="input-tokens">~0 tokens estimados</span>
-      </div>
-    </div>
-  </div>
-</div>
 
-<script src="/frontend/js/config.js"></script>
-<script src="/frontend/js/chat.js"></script>
+      <hr class="sidebar-divider">
+      <div class="sidebar-section"><i class="fa-solid fa-building"></i> Empresas BVL</div>
+      <div class="empresa-list" id="empresa-list"></div>
+
+      <!-- TOKEN COUNTER -->
+      <div class="token-counter">
+        <div class="token-header">
+          <span class="token-label"><i class="fa-solid fa-microchip"></i> Tokens sesión</span>
+          <span class="token-val" id="tok-val">0</span>
+        </div>
+        <div class="token-bar-bg">
+          <div class="token-bar-fill" id="tok-bar" style="width:0%"></div>
+        </div>
+        <div class="token-sub">
+          <span id="tok-used">0 usados</span>
+          <span>1,500 req/día</span>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-nueva" onclick="nuevaConversacion()">
+          <i class="fa-solid fa-plus"></i> Nueva conversación
+        </button>
+      </div>
+    </aside>
+
+    <!-- CHAT -->
+    <section class="chat-area">
+      <div class="messages" id="messages">
+        <div class="welcome" id="welcome">
+          <div class="welcome-logo">PF</div>
+          <div class="welcome-title">Hola, soy <span>Pfinance</span></div>
+          <div class="welcome-sub">Tu asesor financiero con IA para la Bolsa de Valores de Lima. Pregúntame sobre empresas, portafolios o estrategias de inversión.</div>
+          <div class="welcome-stats" id="welcome-stats">
+            <div class="wstat"><div class="wstat-val" id="ws-empresas">7</div><div class="wstat-label">Empresas BVL</div></div>
+            <div class="wstat"><div class="wstat-val" id="ws-reglas">90</div><div class="wstat-label">Reglas CLIPS</div></div>
+            <div class="wstat"><div class="wstat-val" id="ws-modelo">Gemini</div><div class="wstat-label">Motor IA</div></div>
+          </div>
+          <div class="welcome-chips">
+            <div class="chip" onclick="enviarRapido('¿Debo comprar Alicorp ahora?')">
+              <i class="fa-solid fa-building"></i> ¿Compro Alicorp?
+            </div>
+            <div class="chip" onclick="enviarRapido('¿Cómo está BBVA Perú hoy?')">
+              <i class="fa-solid fa-building-columns"></i> BBVA Perú
+            </div>
+            <div class="chip" onclick="enviarRapido('¿Cuál es la mejor acción para invertir S/. 1000?')">
+              <i class="fa-solid fa-sack-dollar"></i> Invertir S/. 1000
+            </div>
+            <div class="chip" onclick="enviarRapido('¿Qué es la BVL y cómo funciona?')">
+              <i class="fa-solid fa-circle-question"></i> ¿Qué es la BVL?
+            </div>
+            <div class="chip" onclick="enviarRapido('¿Cuáles son las empresas más seguras de la BVL?')">
+              <i class="fa-solid fa-shield"></i> Más seguras
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-box">
+          <textarea class="chat-input" id="chat-input" placeholder="Pregúntale algo a Pfinance..." rows="1"></textarea>
+          <button class="btn-send" id="btn-send" onclick="enviar()">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+        <div class="input-footer">
+          <span class="input-hint"><i class="fa-solid fa-keyboard"></i> Enter para enviar · Shift+Enter nueva línea</span>
+          <span class="input-tokens" id="input-tokens">~0 tokens estimados</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/frontend/js/config.js"></script>
+  <script src="/frontend/js/chat.js"></script>
 </body>
 </html>

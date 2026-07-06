@@ -1,27 +1,18 @@
-"""backend/dependencies.py — Contenedor de dependencias (singletons).
-
-Los agentes son costosos de instanciar (cargan modelos, configuran clientes,
-etc.), así que se crean UNA sola vez, dentro del lifespan de FastAPI
-(ver main.py), en vez de crearse en cada request o dispersos por el módulo
-como en la versión anterior.
-
-Los routers los obtienen vía Depends(get_sensor), Depends(get_brain), etc.
-"""
+"""backend/dependencies.py — Contenedor de dependencias (singletons)."""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from agents.market_sensor import MarketSensor
     from agents.clips_rules import ClipsRulesEngine
-    from agents.expert_brain import ExpertBrain
+    from infrastructure.ai.gemini_brain import AsyncExpertBrain
     from agents.intelligent_agent import IntelligentAgent
     from agents.recommendations_engine import RecommendationsEngine
     from agents.advanced_intelligent_agent import AdvancedIntelligentAgent
 
-# Poblados por init_dependencies(), llamado una vez desde el lifespan de main.py
 _sensor:          "MarketSensor | None"                = None
 _clips:           "ClipsRulesEngine | None"             = None
-_brain:           "ExpertBrain | None"                  = None
+_brain:           "AsyncExpertBrain | None"             = None
 _agente:          "IntelligentAgent | None"             = None
 _recomendaciones: "RecommendationsEngine | None"        = None
 _agente_avanzado: "AdvancedIntelligentAgent | None"     = None
@@ -33,17 +24,23 @@ def init_dependencies() -> None:
 
     from agents.market_sensor import MarketSensor
     from agents.clips_rules import ClipsRulesEngine
-    from agents.expert_brain import ExpertBrain
+    from infrastructure.ai.gemini_brain import AsyncExpertBrain
     from agents.intelligent_agent import IntelligentAgent
     from agents.recommendations_engine import RecommendationsEngine
     from agents.advanced_intelligent_agent import AdvancedIntelligentAgent
 
     _sensor          = MarketSensor()
     _clips           = ClipsRulesEngine()
-    _brain           = ExpertBrain()          # usa GEMINI_API_KEY del .env
+    _brain           = AsyncExpertBrain()     # usa GEMINI_API_KEY del .env (GeminiConfig.from_env())
     _agente          = IntelligentAgent()
     _recomendaciones = RecommendationsEngine()
     _agente_avanzado = AdvancedIntelligentAgent()
+
+
+async def cerrar_dependencies() -> None:
+    """Cierra recursos async al apagar la app (cliente httpx del brain)."""
+    if _brain is not None:
+        await _brain.aclose()
 
 
 def get_sensor() -> "MarketSensor":
@@ -56,7 +53,7 @@ def get_clips() -> "ClipsRulesEngine":
     return _clips
 
 
-def get_brain() -> "ExpertBrain":
+def get_brain() -> "AsyncExpertBrain":
     assert _brain is not None, "Brain no inicializado. ¿Falta el lifespan en main.py?"
     return _brain
 

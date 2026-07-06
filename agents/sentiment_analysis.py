@@ -1,14 +1,15 @@
-"""sentiment_analysis.py — Análisis de Sentimiento
-Evalúa sentimiento de noticias y tendencias sociales."""
+"""sentiment_analysis.py — Análisis de Sentimiento (con esteroides)
+Evalúa sentimiento de noticias y tendencias sociales.
 
-import random
-from datetime import datetime, timedelta
+Mejora sobre la versión original: se eliminó `import random` (no se usaba
+en ningún lado — dead import) y se agregaron type hints.
+"""
+from __future__ import annotations
 
 
 class SentimentAnalysis:
     """Motor de análisis de sentimiento para mercado BVL."""
-    
-    # Simulación de noticias recientes por ticker
+
     NOTICIAS_DB = {
         'ALICORC1.LM': [
             {'titulo': 'Alicorp reporta resultados positivos Q1 2024', 'sentimiento': 0.75, 'fecha': -5},
@@ -46,51 +47,48 @@ class SentimentAnalysis:
             {'titulo': 'Huelga de empleados afecta producción', 'sentimiento': -0.70, 'fecha': -11},
         ]
     }
-    
-    def obtener_noticias_recientes(self, ticker, dias=30):
+
+    def obtener_noticias_recientes(self, ticker: str, dias: int = 30) -> list[dict]:
         """Obtiene noticias de los últimos N días para un ticker."""
         noticias = self.NOTICIAS_DB.get(ticker, [])
         return [n for n in noticias if abs(n['fecha']) <= dias]
-    
-    def generar_score_sentimiento(self, ticker, ventana_dias=30):
+
+    def generar_score_sentimiento(self, ticker: str, ventana_dias: int = 30) -> float:
         """
         Calcula score de sentimiento (0-100) basado en:
         - Promedio ponderado de sentimientos recientes (más reciente = más peso)
         - Número de noticias positivas vs negativas
         """
         noticias = self.obtener_noticias_recientes(ticker, ventana_dias)
-        
+
         if not noticias:
             return 50  # neutral si no hay noticias
-        
-        # Peso exponencial: más reciente = más peso
+
         sentimientos_ponderados = []
         for noticia in noticias:
             dias_atras = abs(noticia['fecha'])
             peso = 1.0 / (1 + (dias_atras / 5))  # exponential decay
             sentimiento_norm = (noticia['sentimiento'] + 1) / 2 * 100  # escala 0-100
             sentimientos_ponderados.append(sentimiento_norm * peso)
-        
-        total_peso = sum([1.0 / (1 + (abs(n['fecha']) / 5)) for n in noticias])
+
+        total_peso = sum(1.0 / (1 + (abs(n['fecha']) / 5)) for n in noticias)
         score_promedio = sum(sentimientos_ponderados) / total_peso if total_peso > 0 else 50
-        
-        # Ajuste por cantidad de noticias positivas
+
         positivas = sum(1 for n in noticias if n['sentimiento'] > 0)
         ratio = positivas / len(noticias) if noticias else 0.5
-        
+
         if ratio > 0.7:
             score_promedio = min(100, score_promedio + 10)
         elif ratio < 0.3:
             score_promedio = max(0, score_promedio - 10)
-        
+
         return max(0, min(100, score_promedio))
-    
-    def analizar_sentimiento_detallado(self, ticker):
+
+    def analizar_sentimiento_detallado(self, ticker: str) -> dict:
         """Análisis detallado de sentimiento con noticias."""
         noticias = self.obtener_noticias_recientes(ticker, 30)
         score = self.generar_score_sentimiento(ticker)
-        
-        # Clasificar sentimiento
+
         if score >= 70:
             sentimiento_general = "Muy Positivo 😊"
         elif score >= 55:
@@ -101,12 +99,12 @@ class SentimentAnalysis:
             sentimiento_general = "Negativo 📉"
         else:
             sentimiento_general = "Muy Negativo 😟"
-        
+
         resumen_noticias = []
-        for noticia in noticias[:3]:  # Top 3 más recientes
+        for noticia in noticias[:3]:
             icono = "✅" if noticia['sentimiento'] > 0 else "❌"
             resumen_noticias.append(f"{icono} {noticia['titulo']}")
-        
+
         return {
             "score": score,
             "sentimiento": sentimiento_general,

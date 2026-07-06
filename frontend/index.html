@@ -1,124 +1,135 @@
+  <!-- //frontend/index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Experto BVL — Dashboard</title>
-<link rel="stylesheet" href="/frontend/css/base.css">
-<link rel="stylesheet" href="/frontend/css/dashboard.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Experto BVL — Dashboard</title>
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/frontend/css/base.css">
+  <link rel="stylesheet" href="/frontend/css/dashboard.css">
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-left">
-    <div class="logo">
-      <div class="logo-icon">PF</div>
-      <div>
-        <div class="logo-name"><span>Pfinance</span> BVL</div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="/" class="logo">
+        <div class="logo-icon">PF</div>
+        <div>
+          <div class="logo-name"><span>Pfinance</span> BVL</div>
+        </div>
+      </a>
+      <span class="logo-tag">SISTEMA EXPERTO · UPAO 2026</span>
+      <nav class="topbar-nav" style="margin-left:16px;">
+        <a href="/chat" class="nav-btn"><i class="fa-solid fa-comment"></i> Chat</a>
+        <a href="/dashboard" class="nav-btn active"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill">
+        <div class="sdot" id="sdot"></div>
+        <span id="stext">Verificando...</span>
       </div>
     </div>
-    <span class="logo-tag">SISTEMA EXPERTO · UPAO 2026</span>
-    <div class="topbar-nav">
-      <a href="/chat" class="nav-btn">💬 Chat</a>
-      <a href="/dashboard" class="nav-btn active">📊 Dashboard</a>
+  </header>
+
+  <!-- TICKER BAR -->
+  <div class="ticker-bar">
+    <div class="ticker-track" id="ticker-track">
+      <div class="ticker-item"><span class="t-name">Cargando precios...</span></div>
     </div>
   </div>
-  <div class="topbar-right">
-    <div class="status-pill">
-      <div class="sdot" id="sdot"></div>
-      <span id="stext">Verificando...</span>
-    </div>
-  </div>
-</div>
 
-<!-- TICKER BAR -->
-<div class="ticker-bar">
-  <div class="ticker-track" id="ticker-track">
-    <div class="ticker-item"><span class="t-name">Cargando precios...</span></div>
-  </div>
-</div>
+  <!-- CONTAINER -->
+  <main class="container">
 
-<!-- CONTAINER -->
-<div class="container">
-
-  <!-- CONTROLS -->
-  <div class="controls">
-    <div class="ctrl-group">
-      <div class="ctrl-label">Activos a analizar</div>
-      <div class="activos-grid" id="activos-grid"></div>
-    </div>
-    <div class="perfil-wrap">
-      <div class="ctrl-label">Perfil de riesgo</div>
-      <select class="perfil-select" id="sel-perfil" onchange="cambiarPerfil(this.value)">
-        <option value="Conservador">🛡️ Conservador</option>
-        <option value="Moderado" selected>⚖️ Moderado</option>
-        <option value="Agresivo">⚡ Agresivo</option>
-      </select>
-      <div id="perfil-msg" class="perfil-msg moderado">
-        Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2%.
+    <!-- CONTROLS -->
+    <section class="controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label"><i class="fa-solid fa-list"></i> Activos a analizar</div>
+        <div class="activos-grid" id="activos-grid"></div>
       </div>
-    </div>
-    <button class="btn-analizar" onclick="analizar()">⚡ Analizar Mercado</button>
-  </div>
-
-  <!-- LOADING -->
-  <div id="loading" class="loading">
-    <div class="spinner"></div>
-    <span>Consultando API...</span>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div id="dashboard" style="display:none;">
-
-    <div class="info-panel">
-      <div class="info-item"><div class="info-dot"></div><span id="info-activos">—</span></div>
-      <div class="info-item"><span id="info-reglas">—</span></div>
-      <div class="info-item">PERFIL: <strong id="info-perfil" style="color:var(--text);margin-left:4px;">—</strong></div>
-      <div class="info-item"><span id="info-hora">—</span></div>
-    </div>
-
-    <div class="sec-label">Precios en tiempo real — Bolsa de Valores de Lima</div>
-    <div id="metrics-grid" class="metrics-grid"></div>
-
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-title">Variación % del día por empresa</div>
-        <canvas id="bar-chart" height="110"></canvas>
+      <div class="perfil-wrap">
+        <div class="ctrl-label"><i class="fa-solid fa-user"></i> Perfil de riesgo</div>
+        <select class="perfil-select" id="sel-perfil" onchange="cambiarPerfil(this.value)">
+          <option value="Conservador"><i class="fa-solid fa-shield"></i> Conservador</option>
+          <option value="Moderado" selected><i class="fa-solid fa-scale-balanced"></i> Moderado</option>
+          <option value="Agresivo"><i class="fa-solid fa-bolt"></i> Agresivo</option>
+        </select>
+        <div id="perfil-msg" class="perfil-msg moderado">
+          <i class="fa-solid fa-circle-info"></i> Busca equilibrio entre seguridad y rendimiento. Tolera caídas de hasta 2%.
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Distribución de cartera</div>
-        <canvas id="donut-chart" height="110"></canvas>
+      <button class="btn-analizar" onclick="analizar()">
+        <i class="fa-solid fa-bolt"></i> Analizar Mercado
+      </button>
+    </section>
+
+    <!-- LOADING -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <span>Consultando API...</span>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" style="display:none;">
+
+      <div class="info-panel">
+        <div class="info-item"><div class="info-dot"></div><span id="info-activos">—</span></div>
+        <div class="info-item"><i class="fa-solid fa-ruler"></i> <span id="info-reglas">—</span></div>
+        <div class="info-item"><i class="fa-solid fa-user"></i> PERFIL: <strong id="info-perfil" style="color:var(--text);margin-left:4px;">—</strong></div>
+        <div class="info-item"><i class="fa-solid fa-clock"></i> <span id="info-hora">—</span></div>
       </div>
+
+      <div class="sec-label"><i class="fa-solid fa-chart-simple"></i> Precios en tiempo real — Bolsa de Valores de Lima</div>
+      <div id="metrics-grid" class="metrics-grid"></div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-arrow-trend-up"></i> Variación % del día por empresa</div>
+          <canvas id="bar-chart" height="110"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-chart-pie"></i> Distribución de cartera</div>
+          <canvas id="donut-chart" height="110"></canvas>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('clips', this)">
+          <i class="fa-solid fa-list-check"></i> Motor CLIPS — Reglas activadas
+        </button>
+        <button class="tab-btn" onclick="switchTab('ia', this)">
+          <i class="fa-solid fa-robot"></i> Análisis IA — Gemini Transformer
+        </button>
+      </div>
+
+      <div id="tab-clips" class="tab-content active">
+        <div id="clips-meta" class="clips-meta"></div>
+        <div id="rules-list" class="rules-list"></div>
+      </div>
+
+      <div id="tab-ia" class="tab-content">
+        <p style="color:var(--muted);font-size:0.78rem;margin-bottom:14px;line-height:1.7;font-family:'JetBrains Mono',monospace;">
+          <i class="fa-solid fa-diagram-project"></i> Pipeline: MarketSensor → Few-shot + CoT → Clasificación Text-to-Text (BULLISH/BEARISH/NEUTRAL) → Análisis narrativo · Modelo: Gemini 2.5 Flash Lite
+        </p>
+        <button class="btn-ia" onclick="generarIA()">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Ejecutar análisis Transformer del portafolio
+        </button>
+        <div id="ia-output"></div>
+      </div>
+
     </div>
+  </main>
 
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('clips', this)">📋 Motor CLIPS — Reglas activadas</button>
-      <button class="tab-btn" onclick="switchTab('ia', this)">🤖 Análisis IA — Gemini Transformer</button>
-    </div>
+  <footer class="footer">
+    <i class="fa-solid fa-copyright"></i> SISTEMA EXPERTO BVL · UPAO 2026 · Python 3.12 + FastAPI + Gemini Transformer + CLIPS + Chart.js
+  </footer>
 
-    <div id="tab-clips" class="tab-content active">
-      <div id="clips-meta" class="clips-meta"></div>
-      <div id="rules-list" class="rules-list"></div>
-    </div>
-
-    <div id="tab-ia" class="tab-content">
-      <p style="color:var(--muted);font-size:.8rem;margin-bottom:14px;line-height:1.6;font-family:'JetBrains Mono',monospace;">
-        Pipeline: MarketSensor → Few-shot + CoT → Clasificación Text-to-Text (BULLISH/BEARISH/NEUTRAL) → Análisis narrativo · Modelo: Gemini 2.5 Flash Lite
-      </p>
-      <button class="btn-ia" onclick="generarIA()">✦ Ejecutar análisis Transformer del portafolio</button>
-      <div id="ia-output"></div>
-    </div>
-
-  </div>
-</div>
-
-<footer class="footer">
-  SISTEMA EXPERTO BVL · UPAO 2026 · Python 3.12 + FastAPI + Gemini Transformer + CLIPS + Chart.js
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/frontend/js/config.js"></script>
-<script src="/frontend/js/dashboard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/frontend/js/config.js"></script>
+  <script src="/frontend/js/dashboard.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-"""infrastructure/ai — Integración async con Gemini.
+"""infrastructure/ai/__init__.py — Integración async con Gemini.
 
 - config.py       → GeminiConfig, leída desde .env
 - exceptions.py   → excepciones tipadas (GeminiError y subclases)

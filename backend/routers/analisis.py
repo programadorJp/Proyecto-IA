@@ -6,6 +6,7 @@ noticias, catalistas y predicciones a distintos plazos.
 """
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi.concurrency import run_in_threadpool
 
 from backend.dependencies import get_sensor, get_clips, get_brain, get_agente_avanzado
 from backend.schemas import AnalisisRequest, AnalisisResponse, ActivoResponse, ReglaResponse
@@ -17,21 +18,20 @@ router = APIRouter(tags=["Análisis"])
 
 
 @router.get("/analisis-ia", tags=["IA"])
-def get_analisis_ia(
+async def get_analisis_ia(
     tickers: Optional[str] = Query(default=None),
     perfil: str = Query(default="Moderado"),
     sensor=Depends(get_sensor),
     brain=Depends(get_brain),
 ):
-    """Análisis con IA usando la API key del dueño del sistema."""
     lista = tickers.split(",") if tickers else list(sensor.activos.keys())[:3]
-    df = sensor.percibir_mercado(lista)
-    texto = brain.procesar_estrategia(df)
+    df = await run_in_threadpool(sensor.percibir_mercado, lista)
+    texto = await brain.procesar_estrategia(df)
     return {"analisis": texto, "perfil": perfil, "activos": lista}
 
 
 @router.post("/analisis", response_model=AnalisisResponse, tags=["Pipeline completo"])
-def post_analisis(
+async def post_analisis(
     req: AnalisisRequest,
     sensor=Depends(get_sensor),
     clips=Depends(get_clips),
@@ -41,17 +41,14 @@ def post_analisis(
     if invalidos:
         raise HTTPException(400, detail=f"Tickers inválidos: {invalidos}")
 
-    df = sensor.percibir_mercado(req.tickers)
+    df = await run_in_threadpool(sensor.percibir_mercado, req.tickers)
     reglas = clips.evaluar(df, req.perfil)
-    ia = brain.procesar_estrategia(df)
+    ia = await brain.procesar_estrategia(df)
 
     activos = [
         ActivoResponse(
-            empresa=row["Empresa"],
-            ticker=row["Ticker"],
-            precio=row["Precio"],
-            crecimiento=row["Crecimiento_%"],
-            sector=row["Sector"],
+            empresa=row["Empresa"], ticker=row["Ticker"],
+            precio=row["Precio"], crecimiento=row["Crecimiento_%"], sector=row["Sector"],
         )
         for _, row in df.iterrows()
     ]
@@ -61,13 +58,12 @@ def post_analisis(
         analisis_ia=ia,
     )
 
-
 @router.get("/ficha/{ticker}", tags=["IA"])
-def get_ficha(ticker: str, sensor=Depends(get_sensor), brain=Depends(get_brain)):
+async def get_ficha(ticker: str, sensor=Depends(get_sensor), brain=Depends(get_brain)):
     if ticker not in sensor.activos:
         raise HTTPException(404, detail=f"Ticker '{ticker}' no encontrado.")
     nombre = sensor.activos[ticker]
-    ficha = brain.generar_ficha_tecnica(nombre, ticker)
+    ficha = await brain.generar_ficha_tecnica(nombre, ticker)
     return {"ticker": ticker, "empresa": nombre, "ficha": ficha}
 
 

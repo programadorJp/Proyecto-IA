@@ -1,4 +1,4 @@
-/**chat.js — Pfinance BVL
+/** chat.js — Pfinance BVL
  * Lógica del chat (chat.html). Requiere config.js cargado antes
  * (expone la constante global API).
  */
@@ -7,7 +7,7 @@ let historial = [];
 let esperando = false;
 let tokensSesion = 0;
 const LIMITE_DIARIO = 1500;
-const TOKENS_POR_MSG = 900; // estimado promedio
+const TOKENS_POR_MSG = 900;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await verificarBackend();
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function verificarBackend() {
   try {
-    const r = await fetch(`${API}/`, { signal: AbortSignal.timeout(4000) });
+    const r = await fetch(`${API}/api`, { signal: AbortSignal.timeout(4000) });
     const d = await r.json();
     if (d.status === 'ok') {
       document.getElementById('status-text').textContent = 'Sistema activo';
@@ -31,12 +31,12 @@ async function verificarBackend() {
 
 async function cargarTickers() {
   try {
-    const r    = await fetch(`${API}/activos`);
+    const r = await fetch(`${API}/activos`);
     const data = await r.json();
     const track = document.getElementById('ticker-track');
 
     const html = data.map(a => {
-      const up  = a.crecimiento >= 0;
+      const up = a.crecimiento >= 0;
       const cls = up ? 't-up' : 't-dn';
       const sig = up ? '▲' : '▼';
       return `<div class="ticker-item">
@@ -46,7 +46,6 @@ async function cargarTickers() {
       </div>`;
     }).join('');
 
-    // Duplicar para loop infinito
     track.innerHTML = html + html;
   } catch {
     document.getElementById('ticker-track').innerHTML =
@@ -57,18 +56,18 @@ async function cargarTickers() {
 function cargarEmpresas() {
   const empresas = {
     'ALICORC1.LM': 'Alicorp',
-    'BBVAC1.LM':   'BBVA Perú',
+    'BBVAC1.LM': 'BBVA Perú',
     'CPACASC1.LM': 'Pacasmayo',
     'FERREYC1.LM': 'Ferreycorp',
     'VOLCABC1.LM': 'Volcan',
-    'BAP':         'Credicorp',
-    'SCCO':        'Southern Copper'
+    'BAP': 'Credicorp',
+    'SCCO': 'Southern Copper'
   };
   const list = document.getElementById('empresa-list');
   list.innerHTML = Object.entries(empresas).map(([ticker, nombre]) => `
     <button class="empresa-btn" onclick="enviarRapido('Analiza ${nombre} (${ticker}) y dime si es buena inversión ahora mismo')">
-      <span>${nombre}</span>
-      <span class="empresa-ticker-tag">${ticker.replace('.LM','')}</span>
+      <span><span class="empresa-icon"><i class="fa-regular fa-building"></i></span> ${nombre}</span>
+      <span class="empresa-ticker-tag">${ticker.replace('.LM', '')}</span>
     </button>
   `).join('');
 }
@@ -78,7 +77,6 @@ function setupInput() {
   input.addEventListener('input', () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-    // Estimación de tokens
     const est = Math.ceil(input.value.length / 4);
     document.getElementById('input-tokens').textContent = `~${est + 900} tokens estimados`;
   });
@@ -89,12 +87,11 @@ function setupInput() {
 
 function actualizarTokens(tokensUsados) {
   tokensSesion += tokensUsados;
-  const pct = Math.min((tokensSesion / 50000) * 100, 100); // 50k tokens por sesión aprox
+  const pct = Math.min((tokensSesion / 50000) * 100, 100);
   document.getElementById('tok-val').textContent = tokensSesion.toLocaleString();
   document.getElementById('tok-bar').style.width = pct + '%';
   document.getElementById('tok-used').textContent = tokensSesion.toLocaleString() + ' usados';
 
-  // Color según uso
   const bar = document.getElementById('tok-bar');
   if (pct > 80) bar.style.background = 'linear-gradient(to right,var(--red),#ff6b35)';
   else if (pct > 50) bar.style.background = 'linear-gradient(to right,var(--gold),#ff9800)';
@@ -102,7 +99,7 @@ function actualizarTokens(tokensUsados) {
 }
 
 async function enviar() {
-  const input   = document.getElementById('chat-input');
+  const input = document.getElementById('chat-input');
   const mensaje = input.value.trim();
   if (!mensaje || esperando) return;
 
@@ -130,7 +127,7 @@ async function enviar() {
       body: JSON.stringify({
         message: mensaje,
         history: historial.slice(-10),
-        perfil:  perfil
+        perfil: perfil
       }),
       signal: AbortSignal.timeout(60000)
     });
@@ -141,7 +138,6 @@ async function enviar() {
 
     quitarTyping(typingId);
 
-    // Estimar tokens usados
     const tokEst = Math.ceil((mensaje.length + data.response.length) / 4) + 600;
     actualizarTokens(tokEst);
 
@@ -150,7 +146,7 @@ async function enviar() {
 
     if (historial.length > 20) historial = historial.slice(-20);
 
-  } catch(e) {
+  } catch (e) {
     quitarTyping(typingId);
     agregarMensaje('assistant', `No pude conectar con el servidor. Intenta de nuevo. (${e.message})`);
   } finally {
@@ -168,19 +164,19 @@ function enviarRapido(texto) {
 
 function agregarMensaje(role, contenido, tokens = null, latencia = null) {
   const messages = document.getElementById('messages');
-  const isUser   = role === 'user';
-  const hora     = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+  const isUser = role === 'user';
+  const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
   const metaHtml = !isUser ? `
     <div class="msg-meta">
-      <span class="msg-time">${hora}</span>
-      ${tokens ? `<span class="msg-tokens">${tokens.toLocaleString()} tokens · ${latencia}s</span>` : ''}
-    </div>` : `<div class="msg-meta"><span class="msg-time">${hora}</span></div>`;
+      <span class="msg-time"><i class="fa-regular fa-clock"></i> ${hora}</span>
+      ${tokens ? `<span class="msg-tokens"><i class="fa-regular fa-token"></i> ${tokens.toLocaleString()} tokens · ${latencia}s</span>` : ''}
+    </div>` : `<div class="msg-meta"><span class="msg-time"><i class="fa-regular fa-clock"></i> ${hora}</span></div>`;
 
   const div = document.createElement('div');
   div.className = `msg ${role}`;
   div.innerHTML = `
-    <div class="msg-avatar">${isUser ? '👤' : 'PF'}</div>
+    <div class="msg-avatar">${isUser ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot"></i>'}</div>
     <div class="msg-content">
       <div class="msg-bubble">${isUser ? escapeHtml(contenido) : markdownAHtml(contenido)}</div>
       ${metaHtml}
@@ -203,7 +199,7 @@ function mostrarTyping() {
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
       </div>
-      <span class="typing-text">Pfinance analizando...</span>
+      <span class="typing-text"><i class="fa-solid fa-spinner fa-spin"></i> Pfinance analizando...</span>
     </div>`;
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
@@ -230,10 +226,10 @@ function nuevaConversacion() {
       <div class="welcome-title">Hola, soy <span>Pfinance</span></div>
       <div class="welcome-sub">Tu asesor financiero con IA para la Bolsa de Valores de Lima.</div>
       <div class="welcome-chips">
-        <div class="chip" onclick="enviarRapido('¿Debo comprar Alicorp ahora?')">¿Compro Alicorp?</div>
-        <div class="chip" onclick="enviarRapido('¿Cómo está BBVA Perú hoy?')">BBVA Perú</div>
-        <div class="chip" onclick="enviarRapido('¿Cuál es la mejor acción para invertir S/. 1000?')">Invertir S/. 1000</div>
-        <div class="chip" onclick="enviarRapido('¿Qué es la BVL y cómo funciona?')">¿Qué es la BVL?</div>
+        <div class="chip" onclick="enviarRapido('¿Debo comprar Alicorp ahora?')"><i class="fa-regular fa-building"></i> ¿Compro Alicorp?</div>
+        <div class="chip" onclick="enviarRapido('¿Cómo está BBVA Perú hoy?')"><i class="fa-regular fa-bank"></i> BBVA Perú</div>
+        <div class="chip" onclick="enviarRapido('¿Cuál es la mejor acción para invertir S/. 1000?')"><i class="fa-regular fa-sack-dollar"></i> Invertir S/. 1000</div>
+        <div class="chip" onclick="enviarRapido('¿Qué es la BVL y cómo funciona?')"><i class="fa-regular fa-circle-info"></i> ¿Qué es la BVL?</div>
       </div>
     </div>`;
 }
@@ -257,5 +253,5 @@ function markdownAHtml(texto) {
 }
 
 function escapeHtml(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

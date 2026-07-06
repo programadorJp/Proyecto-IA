@@ -1,25 +1,23 @@
-"""prediction_engine.py — Motor de Predicciones
-Predice tendencias futuras basadas en análisis históricos y noticias."""
+"""prediction_engine.py — Motor de Predicciones (con esteroides)
+Predice tendencias futuras basadas en análisis históricos y noticias.
 
-import random
+Mejora sobre la versión original: se eliminó `import random` (dead import,
+nunca se usaba) y se agregaron type hints.
+"""
+from __future__ import annotations
 
 
 class PredictionEngine:
     """Motor de predicciones para tendencias de precios."""
-    
-    def predecir_corto_plazo(self, ticker, score_actual, catalistas):
+
+    def predecir_corto_plazo(self, ticker: str, score_actual: float, catalistas: dict) -> dict:
         """Predice tendencia a corto plazo (1-4 semanas)."""
-        # Base: score actual (40% del peso)
         prediccion_base = score_actual
-        
-        # Catalistas: afectan predicción (60% del peso)
         balance_catalistas = catalistas.get('balance', 0)
-        
-        # Calcular predicción
+
         prediccion = (prediccion_base * 0.4) + (balance_catalistas * 10 + 50) * 0.6
-        prediccion = max(0, min(100, prediccion))  # Clamp 0-100
-        
-        # Determinar dirección
+        prediccion = max(0, min(100, prediccion))
+
         if prediccion >= 65:
             direccion = "ALISTA"
         elif prediccion >= 50:
@@ -28,20 +26,19 @@ class PredictionEngine:
             direccion = "ESTABLE A LA BAJA"
         else:
             direccion = "BAJISTA"
-        
+
         return {
             "periodo": "4 semanas",
             "prediccion_score": round(prediccion, 1),
             "direccion": direccion,
             "confianza": self._calcular_confianza(score_actual, balance_catalistas)
         }
-    
-    def predecir_mediano_plazo(self, ticker, score_fundamental, crecimiento_sector):
+
+    def predecir_mediano_plazo(self, ticker: str, score_fundamental: float, crecimiento_sector: float) -> dict:
         """Predice tendencia a mediano plazo (3-6 meses)."""
-        # Factor fundamental es más importante a mediano plazo
         prediccion = score_fundamental * 0.7 + (crecimiento_sector + 50) * 0.3
         prediccion = max(0, min(100, prediccion))
-        
+
         if prediccion >= 70:
             direccion = "FUERTE AL ALZA"
         elif prediccion >= 55:
@@ -52,20 +49,19 @@ class PredictionEngine:
             direccion = "A LA BAJA"
         else:
             direccion = "FUERTE A LA BAJA"
-        
+
         return {
             "periodo": "3-6 meses",
             "prediccion_score": round(prediccion, 1),
             "direccion": direccion,
             "confianza": "Media a Alta"
         }
-    
-    def predecir_largo_plazo(self, ticker, score_fundamental, sector_outlook):
-        """Predice tendencia a largo plazo (1+ anos)."""
-        # A largo plazo, fundamentales son clave
+
+    def predecir_largo_plazo(self, ticker: str, score_fundamental: float, sector_outlook: float) -> dict:
+        """Predice tendencia a largo plazo (1+ años)."""
         prediccion = score_fundamental * 0.8 + sector_outlook * 0.2
         prediccion = max(0, min(100, prediccion))
-        
+
         if prediccion >= 75:
             potencial = "MUY ALTO"
             outlook = "Inversión recomendada a largo plazo"
@@ -81,29 +77,26 @@ class PredictionEngine:
         else:
             potencial = "MUY BAJO"
             outlook = "Presión bajista sostenida"
-        
+
         return {
-            "periodo": "1 ano o mas",
+            "periodo": "1 año o más",
             "potencial": potencial,
             "outlook": outlook,
             "prediccion_score": round(prediccion, 1)
         }
-    
-    def generar_escenarios(self, ticker, precio_actual, score_fundamental, volatilidad=0.1):
+
+    def generar_escenarios(self, ticker: str, precio_actual: float, score_fundamental: float, volatilidad: float = 0.1) -> dict:
         """Genera 3 escenarios: bajista, base, alcista."""
-        
-        # Escenario bajista (20% probabilidad)
+
         precio_bajista = precio_actual * (1 - volatilidad * 2)
         cambio_bajista = ((precio_bajista - precio_actual) / precio_actual) * 100
-        
-        # Escenario base (60% probabilidad)
+
         precio_base = precio_actual * (1 + (score_fundamental - 50) / 100 * 0.1)
         cambio_base = ((precio_base - precio_actual) / precio_actual) * 100
-        
-        # Escenario alcista (20% probabilidad)
+
         precio_alcista = precio_actual * (1 + volatilidad * 2)
         cambio_alcista = ((precio_alcista - precio_actual) / precio_actual) * 100
-        
+
         return {
             "escenario_bajista": {
                 "precio_esperado": round(precio_bajista, 2),
@@ -124,10 +117,9 @@ class PredictionEngine:
                 "razon": "Sorpresas positivas o catalizadores inesperados"
             }
         }
-    
-    def _calcular_confianza(self, score_actual, balance_catalistas):
+
+    def _calcular_confianza(self, score_actual: float, balance_catalistas: int) -> str:
         """Calcula nivel de confianza en la predicción."""
-        # Alta confianza si score es claro y catalistas respaldan
         if (score_actual >= 70 and balance_catalistas > 0) or (score_actual <= 30 and balance_catalistas < 0):
             return "Alta"
         elif 40 <= score_actual <= 60 and abs(balance_catalistas) <= 1:

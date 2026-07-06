@@ -1,0 +1,3087 @@
+﻿=========================================
+CONTENIDO DE TODOS LOS ARCHIVOS
+Ruta: C:\Users\lesca\Proyecto-IA\agents
+Fecha: 07/05/2026 04:27:21
+Total de archivos: 14
+=========================================
+
+-----------------------------------------
+ARCHIVO: advanced_intelligent_agent.py
+TamaÃ±o: 6.72 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""advanced_intelligent_agent.py â€” Agente Inteligente Mejorado
+AnÃ¡lisis completo y respuestas conversacionales."""
+
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from agents.intelligent_agent import IntelligentAgent
+from agents.news_analyzer import NewsAnalyzer
+from agents.prediction_engine import PredictionEngine
+from agents.conversational_response import ConversationalResponseGenerator
+from agents.market_sensor import MarketSensor
+
+
+class AdvancedIntelligentAgent:
+    """Agente mejorado con anÃ¡lisis completo y respuestas humanas."""
+    
+    def __init__(self):
+        self.base_agent = IntelligentAgent()
+        self.news_analyzer = NewsAnalyzer()
+        self.prediction_engine = PredictionEngine()
+        self.response_generator = ConversationalResponseGenerator()
+        self.sensor = MarketSensor()
+    
+    def analizar_empresa_conversacional(self, ticker):
+        """
+        AnÃ¡lisis completo conversacional de una empresa.
+        Responde como un analista humano experimentado.
+        """
+        
+        # 1. Validar ticker
+        if ticker not in self.sensor.activos:
+            return f"Error: Ticker {ticker} no encontrado en BVL."
+        
+        empresa = self.sensor.activos[ticker]
+        
+        # 2. Obtener datos de mercado
+        df = self.sensor.percibir_mercado([ticker])
+        precio_actual = df.iloc[0]['Precio'] if len(df) > 0 else 0
+        
+        # 3. Obtener recomendaciÃ³n tÃ©cnica/fundamental/sentimiento
+        recomendacion_base = self.base_agent.recommendations.evaluar_activo(ticker, precio_actual)
+        
+        # 4. Obtener anÃ¡lisis de noticias
+        tendencia_noticias = self.news_analyzer.analizar_tendencia(ticker)
+        resumen_noticias = self.news_analyzer.generar_resumen_noticias(ticker)
+        catalistas = self.news_analyzer.detectar_catalistas(ticker)
+        
+        # 5. Generar predicciones
+        pred_corto = self.prediction_engine.predecir_corto_plazo(
+            ticker, 
+            recomendacion_base['score_final'],
+            catalistas
+        )
+        
+        pred_mediano = self.prediction_engine.predecir_mediano_plazo(
+            ticker,
+            recomendacion_base['score_fundamental'],
+            tendencia_noticias['score'] * 100
+        )
+        
+        pred_largo = self.prediction_engine.predecir_largo_plazo(
+            ticker,
+            recomendacion_base['score_fundamental'],
+            70  # sector outlook default
+        )
+        
+        escenarios = self.prediction_engine.generar_escenarios(
+            ticker,
+            precio_actual,
+            recomendacion_base['score_fundamental']
+        )
+        
+        # 6. Compilar datos para respuesta conversacional
+        datos_completos = {
+            'recomendacion': recomendacion_base,
+            'noticias': {
+                'resumen': resumen_noticias,
+                'tendencia': tendencia_noticias['tendencia']
+            },
+            'predicciones': {
+                'corto_plazo': pred_corto,
+                'mediano_plazo': pred_mediano,
+                'largo_plazo': pred_largo,
+                'escenarios': escenarios
+            },
+            'catalistas': catalistas
+        }
+        
+        # 7. Generar respuesta conversacional
+        respuesta = self.response_generator.generar_analisis_conversacional(
+            ticker, empresa, datos_completos
+        )
+        
+        return respuesta
+    
+    def comparar_empresas_conversacional(self, tickers):
+        """Compara empresas de forma conversacional."""
+        
+        print(f"\nAnalizando {len(tickers)} empresas...\n")
+        
+        analisis = []
+        for ticker in tickers:
+            if ticker not in self.sensor.activos:
+                continue
+            
+            empresa = self.sensor.activos[ticker]
+            df = self.sensor.percibir_mercado([ticker])
+            precio = df.iloc[0]['Precio'] if len(df) > 0 else 0
+            
+            recomendacion = self.base_agent.recommendations.evaluar_activo(ticker, precio)
+            
+            analisis.append({
+                'ticker': ticker,
+                'empresa': empresa,
+                'score': recomendacion['score_final'],
+                'recomendacion': recomendacion['recomendacion'],
+                'tecnico': recomendacion['score_tecnico'],
+                'fundamental': recomendacion['score_fundamental']
+            })
+        
+        # Ordenar por score
+        analisis.sort(key=lambda x: x['score'], reverse=True)
+        
+        # Generar respuesta comparativa
+        respuesta = f"""COMPARACION DE EMPRESAS:
+
+AnalicÃ© {len(analisis)} empresas para ti. AquÃ­ estÃ¡ el ranking:
+\n"""
+        
+        for i, a in enumerate(analisis, 1):
+            respuesta += f"""{i}. {a['empresa'].upper()} ({a['ticker']})
+   Score: {a['score']}/100 
+   Recomendacion: {a['recomendacion']}
+   (Tecnico: {a['tecnico']}, Fundamental: {a['fundamental']})
+
+"""
+        
+        respuesta += f"""\nLA MEJOR OPCION: {analisis[0]['empresa']}
+   Por quÃ©: Tiene el score mÃ¡s alto ({analisis[0]['score']}/100) 
+   y mejores perspectivas a corto y mediano plazo.
+
+EVITA POR AHORA: {analisis[-1]['empresa']}
+   Por quÃ©: Score bajo ({analisis[-1]['score']}/100) con seÃ±ales 
+   negativas. Hay mejores opciones en el mercado.
+"""
+        
+        return respuesta
+    
+    def obtener_recomendacion_rapida(self, ticker):
+        """Obtiene recomendaciÃ³n rÃ¡pida de una lÃ­nea."""
+        if ticker not in self.sensor.activos:
+            return f"Error: Ticker {ticker} no encontrado."
+        
+        empresa = self.sensor.activos[ticker]
+        df = self.sensor.percibir_mercado([ticker])
+        precio = df.iloc[0]['Precio'] if len(df) > 0 else 0
+        
+        recomendacion = self.base_agent.recommendations.evaluar_activo(ticker, precio)
+        
+        return self.response_generator.generar_respuesta_rapida(
+            ticker, empresa, 
+            recomendacion['score_final'],
+            recomendacion['recomendacion']
+        )
+
+
+if __name__ == "__main__":
+    agente = AdvancedIntelligentAgent()
+    
+    print("\n" + "="*70)
+    print("AGENTE INTELIGENTE DE INVERSIONES BVL - CONVERSACIONAL")
+    print("="*70)
+    
+    # Ejemplo: analizar BBVA
+    print("\nAnalizando BBVA Peru (BBVAC1.LM)...\n")
+    analisis = agente.analizar_empresa_conversacional("BBVAC1.LM")
+    print(analisis)
+    
+    # Comparar empresas
+    print("\n\n" + "="*70)
+    print("COMPARACION DE EMPRESAS")
+    print("="*70)
+    comparacion = agente.comparar_empresas_conversacional(
+        ["BBVAC1.LM", "ALICORC1.LM", "FERREYC1.LM", "VOLCABC1.LM"]
+    )
+    print(comparacion)
+
+
+-----------------------------------------
+ARCHIVO: clips_rules.py
+TamaÃ±o: 37.97 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""clips_rules.py â€” Motor de Reglas estilo CLIPS
+Sistema Experto BVL Â· UPAO 2026
+Implementa un sistema de producciÃ³n IF-THEN con encadenamiento hacia adelante (forward chaining) para evaluar activos financieros.
+Total de reglas: 90 reglas organizadas en 8 categorÃ­as"""
+
+class ClipsRulesEngine:
+    """Motor de inferencia hacia adelante.
+    CategorÃ­as de reglas:
+    R01-R10  â†’ SeÃ±ales de crecimiento
+    R11-R20  â†’ SeÃ±ales de caÃ­da
+    R21-R30  â†’ Perfil Conservador
+    R31-R40  â†’ Perfil Moderado
+    R41-R50  â†’ Perfil Agresivo
+    R51-R60  â†’ AnÃ¡lisis de precio
+    R61-R70  â†’ Sectores y fuentes
+    R71-R80  â†’ Reglas combinadas
+    R81-R90  â†’ Alertas y advertencias"""
+
+    REGLAS = [
+
+        # CATEGORÃA 1: SEÃ‘ALES DE CRECIMIENTO (R01-R10)
+        {
+            "id": "R01", "categoria": "Crecimiento",
+            "nombre": "MOMENTUM_FUERTE_POSITIVO",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 5.0,
+            "accion": "COMPRA FUERTE â€” Momentum alcista excepcional, seÃ±al muy positiva",
+            "icono": "ðŸš€", "color": "#00e5a0", "prioridad": 1
+        },
+        {
+            "id": "R02", "categoria": "Crecimiento",
+            "nombre": "MOMENTUM_MODERADO_POSITIVO",
+            "condicion": lambda f, p: 3.0 <= f["Crecimiento_%"] < 5.0,
+            "accion": "COMPRAR â€” Momentum alcista fuerte detectado",
+            "icono": "ðŸ“ˆ", "color": "#00e5a0", "prioridad": 2
+        },
+        {
+            "id": "R03", "categoria": "Crecimiento",
+            "nombre": "CRECIMIENTO_LEVE",
+            "condicion": lambda f, p: 1.0 <= f["Crecimiento_%"] < 3.0,
+            "accion": "CONSIDERAR COMPRA â€” Crecimiento leve, tendencia positiva",
+            "icono": "ðŸ“Š", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R04", "categoria": "Crecimiento",
+            "nombre": "CRECIMIENTO_MINIMO",
+            "condicion": lambda f, p: 0.0 < f["Crecimiento_%"] < 1.0,
+            "accion": "MANTENER â€” Crecimiento mÃ­nimo, posiciÃ³n estable",
+            "icono": "âž¡ï¸", "color": "#6c7a95", "prioridad": 4
+        },
+        {
+            "id": "R05", "categoria": "Crecimiento",
+            "nombre": "CRECIMIENTO_EXCEPCIONAL",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 8.0,
+            "accion": "ALERTA POSITIVA â€” Crecimiento excepcional, verificar noticias corporativas",
+            "icono": "â­", "color": "#ffd700", "prioridad": 1
+        },
+        {
+            "id": "R06", "categoria": "Crecimiento",
+            "nombre": "RECUPERACION_TECNICA",
+            "condicion": lambda f, p: 2.0 <= f["Crecimiento_%"] < 4.0 and f["Precio"] < 10.0,
+            "accion": "OPORTUNIDAD â€” Posible recuperaciÃ³n tÃ©cnica en precio bajo",
+            "icono": "ðŸ”„", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R07", "categoria": "Crecimiento",
+            "nombre": "CRECIMIENTO_CON_PRECIO_ALTO",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 2.0 and f["Precio"] >= 100.0,
+            "accion": "MANTENER POSICION â€” Activo premium con buen momentum",
+            "icono": "ðŸ’Ž", "color": "#00e5a0", "prioridad": 2
+        },
+        {
+            "id": "R08", "categoria": "Crecimiento",
+            "nombre": "REBOTE_RAPIDO",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 4.0 and f["Precio"] < 5.0,
+            "accion": "ESPECULAR â€” Rebote rÃ¡pido en penny stock, alto riesgo/retorno",
+            "icono": "âš¡", "color": "#ffd700", "prioridad": 2
+        },
+        {
+            "id": "R09", "categoria": "Crecimiento",
+            "nombre": "TENDENCIA_ALCISTA_MINERIA",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 1.5 and "Copper" in f["Empresa"],
+            "accion": "COMPRAR â€” MinerÃ­a con tendencia alcista, beneficio por precios de commodities",
+            "icono": "â›ï¸", "color": "#00e5a0", "prioridad": 2
+        },
+        {
+            "id": "R10", "categoria": "Crecimiento",
+            "nombre": "TENDENCIA_ALCISTA_BANCARIA",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 1.0 and any(b in f["Empresa"] for b in ["BBVA","BCP","Credicorp"]),
+            "accion": "COMPRAR â€” Sector bancario con crecimiento, respaldo sÃ³lido",
+            "icono": "ðŸ¦", "color": "#00e5a0", "prioridad": 2
+        },
+
+        # CATEGORÃA 2: SEÃ‘ALES DE CAÃDA (R11-R20)
+        {
+            "id": "R11", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_CRITICA",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -5.0,
+            "accion": "VENDER URGENTE â€” CaÃ­da crÃ­tica, activa stop-loss inmediatamente",
+            "icono": "ðŸ”´", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R12", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_FUERTE",
+            "condicion": lambda f, p: -5.0 < f["Crecimiento_%"] <= -3.0,
+            "accion": "VENDER / STOP-LOSS â€” CaÃ­da fuerte, revisar posiciÃ³n urgente",
+            "icono": "ðŸ“‰", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R13", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_MODERADA",
+            "condicion": lambda f, p: -3.0 < f["Crecimiento_%"] <= -1.5,
+            "accion": "PRECAUCIÃ“N â€” CaÃ­da moderada, monitorear de cerca",
+            "icono": "âš ï¸", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R14", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_LEVE",
+            "condicion": lambda f, p: -1.5 < f["Crecimiento_%"] <= -0.5,
+            "accion": "OBSERVAR â€” CaÃ­da leve, puede ser correcciÃ³n normal",
+            "icono": "ðŸ‘ï¸", "color": "#6c7a95", "prioridad": 3
+        },
+        {
+            "id": "R15", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_PRECIO_BAJO",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -2.0 and f["Precio"] < 2.0,
+            "accion": "ALERTA ROJA â€” Activo de bajo precio en caÃ­da, riesgo de desvalorizaciÃ³n",
+            "icono": "ðŸš¨", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R16", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_PRECIO_ALTO",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -3.0 and f["Precio"] >= 50.0,
+            "accion": "REVISAR PORTAFOLIO â€” Activo premium en caÃ­da, posible ajuste sectorial",
+            "icono": "ðŸ“Š", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R17", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_SECTOR_MINERO",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -2.0 and any(m in f["Empresa"] for m in ["Volcan","Southern","Copper"]),
+            "accion": "PRECAUCIÃ“N MINERÃA â€” CaÃ­da en sector minero, revisar precios de metales",
+            "icono": "â›ï¸", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R18", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_SECTOR_CONSTRUCCION",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -2.0 and "Pacasmayo" in f["Empresa"],
+            "accion": "PRECAUCIÃ“N CONSTRUCCIÃ“N â€” Sector sensible a ciclos econÃ³micos peruanos",
+            "icono": "ðŸ—ï¸", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R19", "categoria": "CaÃ­da",
+            "nombre": "CAIDA_CON_REBOTE_POSIBLE",
+            "condicion": lambda f, p: -4.0 < f["Crecimiento_%"] <= -2.0 and p == "Agresivo",
+            "accion": "OPORTUNIDAD CONTRARIAN â€” CaÃ­da puede ser entrada para perfil agresivo",
+            "icono": "ðŸŽ¯", "color": "#3b82f6", "prioridad": 3
+        },
+        {
+            "id": "R20", "categoria": "CaÃ­da",
+            "nombre": "ZONA_SOPORTE",
+            "condicion": lambda f, p: -1.0 < f["Crecimiento_%"] <= 0.0,
+            "accion": "ZONA NEUTRAL â€” Precio en soporte, esperar confirmaciÃ³n de tendencia",
+            "icono": "âš–ï¸", "color": "#6c7a95", "prioridad": 4
+        },
+
+        # CATEGORÃA 3: PERFIL CONSERVADOR (R21-R30)
+        {
+            "id": "R21", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_ZONA_IDEAL",
+            "condicion": lambda f, p: p == "Conservador" and -0.5 <= f["Crecimiento_%"] <= 1.5,
+            "accion": "IDEAL CONSERVADOR â€” Activo estable, bajo riesgo, apto para portafolio conservador",
+            "icono": "ðŸ›¡ï¸", "color": "#4ecdc4", "prioridad": 2
+        },
+        {
+            "id": "R22", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_BANCO_SEGURO",
+            "condicion": lambda f, p: p == "Conservador" and any(b in f["Empresa"] for b in ["BBVA","BCP","Credicorp"]) and f["Crecimiento_%"] >= 0,
+            "accion": "RECOMENDADO â€” Banco sÃ³lido con rendimiento positivo, bajo riesgo sistÃ©mico",
+            "icono": "ðŸ¦", "color": "#4ecdc4", "prioridad": 2
+        },
+        {
+            "id": "R23", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_EVITAR_VOLATIL",
+            "condicion": lambda f, p: p == "Conservador" and abs(f["Crecimiento_%"]) > 3.0,
+            "accion": "NO RECOMENDADO â€” Alta volatilidad, incompatible con perfil conservador",
+            "icono": "ðŸš«", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R24", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_PRECIO_ESTABLE",
+            "condicion": lambda f, p: p == "Conservador" and f["Precio"] >= 5.0 and abs(f["Crecimiento_%"]) <= 1.0,
+            "accion": "MANTENER â€” Precio estable y suficiente, ideal para conservador",
+            "icono": "âœ…", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R25", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_MINERIA_RIESGO",
+            "condicion": lambda f, p: p == "Conservador" and any(m in f["Empresa"] for m in ["Volcan","Southern","Copper"]),
+            "accion": "PRECAUCIÃ“N â€” MinerÃ­a es volÃ¡til, no ideal para perfil conservador",
+            "icono": "âš ï¸", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R26", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_ALICORP_SEGURO",
+            "condicion": lambda f, p: p == "Conservador" and "Alicorp" in f["Empresa"] and f["Crecimiento_%"] >= 0,
+            "accion": "RECOMENDADO â€” Consumo masivo estable, defensivo en recesiÃ³n",
+            "icono": "ðŸ›¡ï¸", "color": "#4ecdc4", "prioridad": 2
+        },
+        {
+            "id": "R27", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_DIVIDENDO_POTENCIAL",
+            "condicion": lambda f, p: p == "Conservador" and f["Precio"] >= 20.0 and f["Crecimiento_%"] >= 0.5,
+            "accion": "POTENCIAL DIVIDENDO â€” Empresa madura con posible reparto de dividendos",
+            "icono": "ðŸ’°", "color": "#ffd700", "prioridad": 3
+        },
+        {
+            "id": "R28", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_CAIDA_SALIR",
+            "condicion": lambda f, p: p == "Conservador" and f["Crecimiento_%"] <= -2.0,
+            "accion": "SALIR â€” Perfil conservador no debe tolerar esta caÃ­da",
+            "icono": "ðŸšª", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R29", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_FERREYCORP",
+            "condicion": lambda f, p: p == "Conservador" and "Ferreycorp" in f["Empresa"] and f["Crecimiento_%"] >= 0,
+            "accion": "CONSIDERAR â€” Ferreycorp es empresa industrial estable en PerÃº",
+            "icono": "ðŸ”§", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R30", "categoria": "Conservador",
+            "nombre": "CONSERVADOR_PRECIO_MUY_BAJO",
+            "condicion": lambda f, p: p == "Conservador" and f["Precio"] < 1.0,
+            "accion": "EVITAR â€” Precio demasiado bajo para perfil conservador, alto riesgo",
+            "icono": "âŒ", "color": "#ff4757", "prioridad": 2
+        },
+
+        # CATEGORÃA 4: PERFIL MODERADO (R31-R40)
+        {
+            "id": "R31", "categoria": "Moderado",
+            "nombre": "MODERADO_ZONA_OPTIMA",
+            "condicion": lambda f, p: p == "Moderado" and 1.0 <= f["Crecimiento_%"] <= 4.0,
+            "accion": "ZONA Ã“PTIMA â€” Crecimiento moderado ideal para este perfil",
+            "icono": "âš–ï¸", "color": "#4ecdc4", "prioridad": 2
+        },
+        {
+            "id": "R32", "categoria": "Moderado",
+            "nombre": "MODERADO_DIVERSIFICAR",
+            "condicion": lambda f, p: p == "Moderado" and 0.0 <= f["Crecimiento_%"] < 1.0,
+            "accion": "MANTENER Y DIVERSIFICAR â€” Bajo crecimiento, considerar complementar portafolio",
+            "icono": "ðŸ“‹", "color": "#6c7a95", "prioridad": 3
+        },
+        {
+            "id": "R33", "categoria": "Moderado",
+            "nombre": "MODERADO_CRECIMIENTO_ALTO",
+            "condicion": lambda f, p: p == "Moderado" and f["Crecimiento_%"] > 4.0,
+            "accion": "REVISAR RIESGO â€” Crecimiento alto puede implicar mayor volatilidad futura",
+            "icono": "ðŸ”", "color": "#ffd700", "prioridad": 2
+        },
+        {
+            "id": "R34", "categoria": "Moderado",
+            "nombre": "MODERADO_CAIDA_ACEPTABLE",
+            "condicion": lambda f, p: p == "Moderado" and -2.0 <= f["Crecimiento_%"] < 0.0,
+            "accion": "TOLERABLE â€” CaÃ­da dentro del rango aceptable para perfil moderado",
+            "icono": "ðŸ“Š", "color": "#6c7a95", "prioridad": 3
+        },
+        {
+            "id": "R35", "categoria": "Moderado",
+            "nombre": "MODERADO_CAIDA_LIMITE",
+            "condicion": lambda f, p: p == "Moderado" and f["Crecimiento_%"] < -2.0,
+            "accion": "LÃMITE MODERADO â€” CaÃ­da supera tolerancia, considerar reducir posiciÃ³n",
+            "icono": "âš ï¸", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R36", "categoria": "Moderado",
+            "nombre": "MODERADO_BVL_REAL_TIME",
+            "condicion": lambda f, p: p == "Moderado" and f["Sector"] == "BVL Real-Time" and f["Crecimiento_%"] >= 0.5,
+            "accion": "DATO CONFIABLE â€” Precio en tiempo real con tendencia positiva",
+            "icono": "ðŸ“¡", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R37", "categoria": "Moderado",
+            "nombre": "MODERADO_CREDICORP",
+            "condicion": lambda f, p: p == "Moderado" and "Credicorp" in f["Empresa"],
+            "accion": "RECOMENDADO â€” Credicorp es lÃ­der financiero peruano, bajo riesgo relativo",
+            "icono": "ðŸ›ï¸", "color": "#4ecdc4", "prioridad": 2
+        },
+        {
+            "id": "R38", "categoria": "Moderado",
+            "nombre": "MODERADO_SOUTHERN_COPPER",
+            "condicion": lambda f, p: p == "Moderado" and "Southern" in f["Empresa"] and f["Crecimiento_%"] >= 0,
+            "accion": "CONSIDERAR â€” Southern Copper tiene exposiciÃ³n internacional, diversifica geogrÃ¡ficamente",
+            "icono": "ðŸŒ", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R39", "categoria": "Moderado",
+            "nombre": "MODERADO_BALANCE_PORTAFOLIO",
+            "condicion": lambda f, p: p == "Moderado" and f["Precio"] >= 10.0 and 0 <= f["Crecimiento_%"] <= 3.0,
+            "accion": "BALANCE IDEAL â€” Precio y crecimiento equilibrados para portafolio moderado",
+            "icono": "âš–ï¸", "color": "#00e5a0", "prioridad": 2
+        },
+        {
+            "id": "R40", "categoria": "Moderado",
+            "nombre": "MODERADO_VOLATILIDAD_EXTREMA",
+            "condicion": lambda f, p: p == "Moderado" and abs(f["Crecimiento_%"]) > 5.0,
+            "accion": "ALTA VOLATILIDAD â€” Supera tolerancia moderada, reducir exposiciÃ³n",
+            "icono": "ðŸŒŠ", "color": "#ff6b35", "prioridad": 2
+        },
+
+        # CATEGORÃA 5: PERFIL AGRESIVO (R41-R50)
+        {
+            "id": "R41", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_MAXIMO_RETORNO",
+            "condicion": lambda f, p: p == "Agresivo" and f["Crecimiento_%"] >= 5.0,
+            "accion": "ENTRADA AGRESIVA â€” MÃ¡ximo momentum, aprovechar tendencia alcista",
+            "icono": "ðŸš€", "color": "#00e5a0", "prioridad": 1
+        },
+        {
+            "id": "R42", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_PENNY_STOCK",
+            "condicion": lambda f, p: p == "Agresivo" and f["Precio"] < 1.0 and f["Crecimiento_%"] >= 0,
+            "accion": "ESPECULAR â€” Penny stock con potencial de multiplicar, alto riesgo aceptado",
+            "icono": "ðŸŽ°", "color": "#a855f7", "prioridad": 2
+        },
+        {
+            "id": "R43", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_MINERIA_OPORTUNIDAD",
+            "condicion": lambda f, p: p == "Agresivo" and any(m in f["Empresa"] for m in ["Volcan","Southern","Copper"]) and f["Crecimiento_%"] >= 0,
+            "accion": "OPORTUNIDAD MINERA â€” Sector volÃ¡til apto para perfil agresivo, alto potencial",
+            "icono": "â›ï¸", "color": "#ffd700", "prioridad": 2
+        },
+        {
+            "id": "R44", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_CAIDA_ENTRADA",
+            "condicion": lambda f, p: p == "Agresivo" and -5.0 < f["Crecimiento_%"] <= -2.0,
+            "accion": "COMPRA EN CAÃDA â€” Estrategia contrarian, posible rebote tÃ©cnico",
+            "icono": "ðŸŽ¯", "color": "#3b82f6", "prioridad": 2
+        },
+        {
+            "id": "R45", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_STOP_LOSS_EXTREMO",
+            "condicion": lambda f, p: p == "Agresivo" and f["Crecimiento_%"] <= -5.0,
+            "accion": "STOP-LOSS â€” Incluso perfil agresivo debe protegerse ante caÃ­da extrema",
+            "icono": "ðŸ›‘", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R46", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_PRECIO_BAJO_POTENCIAL",
+            "condicion": lambda f, p: p == "Agresivo" and f["Precio"] < 3.0 and f["Crecimiento_%"] > 0,
+            "accion": "ALTO POTENCIAL â€” Precio bajo con crecimiento, multiplicador posible",
+            "icono": "ðŸ’¥", "color": "#ffd700", "prioridad": 2
+        },
+        {
+            "id": "R47", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_VOLCAN_MINERA",
+            "condicion": lambda f, p: p == "Agresivo" and "Volcan" in f["Empresa"],
+            "accion": "ESPECULATIVO â€” Volcan Minera alta volatilidad, oportunidad para agresivos",
+            "icono": "ðŸŒ‹", "color": "#a855f7", "prioridad": 2
+        },
+        {
+            "id": "R48", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_DIVERSIFICAR_RIESGO",
+            "condicion": lambda f, p: p == "Agresivo" and f["Crecimiento_%"] >= 3.0,
+            "accion": "CONCENTRAR POSICIÃ“N â€” Buen momentum, considera aumentar posiciÃ³n gradualmente",
+            "icono": "ðŸ“ˆ", "color": "#00e5a0", "prioridad": 2
+        },
+        {
+            "id": "R49", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_INTERNACIONAL",
+            "condicion": lambda f, p: p == "Agresivo" and f["Ticker"] in ["BAP", "SCCO"],
+            "accion": "EXPOSICIÃ“N INTERNACIONAL â€” Ticker en NYSE, diversificaciÃ³n global para agresivo",
+            "icono": "ðŸŒ", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R50", "categoria": "Agresivo",
+            "nombre": "AGRESIVO_ZONA_NEUTRAL_ESPERAR",
+            "condicion": lambda f, p: p == "Agresivo" and -1.0 <= f["Crecimiento_%"] <= 0.5,
+            "accion": "ESPERAR SEÃ‘AL â€” Zona neutral, aguardar momentum claro antes de entrar",
+            "icono": "â³", "color": "#6c7a95", "prioridad": 4
+        },
+
+        # CATEGORÃA 6: ANÃLISIS DE PRECIO (R51-R60)
+        {
+            "id": "R51", "categoria": "Precio",
+            "nombre": "PRECIO_PREMIUM",
+            "condicion": lambda f, p: f["Precio"] >= 100.0,
+            "accion": "ACTIVO PREMIUM â€” Precio elevado, empresa de gran capitalizaciÃ³n",
+            "icono": "ðŸ’Ž", "color": "#ffd700", "prioridad": 3
+        },
+        {
+            "id": "R52", "categoria": "Precio",
+            "nombre": "PRECIO_ALTO",
+            "condicion": lambda f, p: 50.0 <= f["Precio"] < 100.0,
+            "accion": "PRECIO ALTO â€” Empresa mediana-grande, mayor estabilidad relativa",
+            "icono": "ðŸ“Š", "color": "#4ecdc4", "prioridad": 4
+        },
+        {
+            "id": "R53", "categoria": "Precio",
+            "nombre": "PRECIO_MEDIO",
+            "condicion": lambda f, p: 10.0 <= f["Precio"] < 50.0,
+            "accion": "PRECIO MEDIO â€” Rango accesible, buena liquidez tÃ­picamente",
+            "icono": "âš–ï¸", "color": "#6c7a95", "prioridad": 4
+        },
+        {
+            "id": "R54", "categoria": "Precio",
+            "nombre": "PRECIO_BAJO",
+            "condicion": lambda f, p: 2.0 <= f["Precio"] < 10.0,
+            "accion": "PRECIO BAJO â€” Mayor volatilidad porcentual, monitorear con atenciÃ³n",
+            "icono": "âš ï¸", "color": "#ff6b35", "prioridad": 4
+        },
+        {
+            "id": "R55", "categoria": "Precio",
+            "nombre": "PRECIO_MUY_BAJO",
+            "condicion": lambda f, p: f["Precio"] < 2.0,
+            "accion": "PRECIO MUY BAJO â€” Alta especulaciÃ³n, solo para perfiles agresivos informados",
+            "icono": "ðŸŽ²", "color": "#a855f7", "prioridad": 3
+        },
+        {
+            "id": "R56", "categoria": "Precio",
+            "nombre": "PRECIO_PREMIUM_EN_CAIDA",
+            "condicion": lambda f, p: f["Precio"] >= 100.0 and f["Crecimiento_%"] <= -2.0,
+            "accion": "REVISIÃ“N URGENTE â€” Empresa premium en caÃ­da, verificar fundamentales",
+            "icono": "ðŸ”", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R57", "categoria": "Precio",
+            "nombre": "PRECIO_BAJO_EN_ALZA",
+            "condicion": lambda f, p: f["Precio"] < 5.0 and f["Crecimiento_%"] >= 3.0,
+            "accion": "POTENCIAL ALCISTA â€” Precio bajo con momentum, vigilar volumen",
+            "icono": "ðŸš€", "color": "#ffd700", "prioridad": 2
+        },
+        {
+            "id": "R58", "categoria": "Precio",
+            "nombre": "PRECIO_CREDICORP_REFERENCIA",
+            "condicion": lambda f, p: "Credicorp" in f["Empresa"] and f["Precio"] >= 150.0,
+            "accion": "CREDICORP PREMIUM â€” Precio histÃ³rico alto, empresa lÃ­der BVL y NYSE",
+            "icono": "ðŸ›ï¸", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R59", "categoria": "Precio",
+            "nombre": "PRECIO_SOUTHERN_REFERENCIA",
+            "condicion": lambda f, p: "Southern" in f["Empresa"] and f["Precio"] >= 80.0,
+            "accion": "SOUTHERN PREMIUM â€” CotizaciÃ³n en NYSE, benchmark de minerÃ­a cuprÃ­fera global",
+            "icono": "ðŸŒŽ", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R60", "categoria": "Precio",
+            "nombre": "RELACION_PRECIO_CRECIMIENTO",
+            "condicion": lambda f, p: f["Precio"] > 0 and f["Crecimiento_%"] / max(f["Precio"], 1) > 0.1,
+            "accion": "RATIO FAVORABLE â€” Crecimiento proporcional al precio es positivo",
+            "icono": "ðŸ“", "color": "#00e5a0", "prioridad": 3
+        },
+
+        # CATEGORÃA 7: SECTORES Y FUENTES (R61-R70)
+        {
+            "id": "R61", "categoria": "Sector",
+            "nombre": "DATO_TIEMPO_REAL",
+            "condicion": lambda f, p: f["Sector"] == "BVL Real-Time",
+            "accion": "DATO CONFIABLE â€” Precio obtenido en tiempo real desde yfinance",
+            "icono": "ðŸ“¡", "color": "#00e5a0", "prioridad": 5
+        },
+        {
+            "id": "R62", "categoria": "Sector",
+            "nombre": "DATO_DEMO",
+            "condicion": lambda f, p: f["Sector"] in ("Demo", "Demo BVL"),
+            "accion": "DATO REFERENCIAL â€” Precio de referencia, verificar con fuente oficial",
+            "icono": "â„¹ï¸", "color": "#6c7a95", "prioridad": 5
+        },
+        {
+            "id": "R63", "categoria": "Sector",
+            "nombre": "DATO_OFFLINE",
+            "condicion": lambda f, p: f["Sector"] == "Offline",
+            "accion": "SIN CONEXIÃ“N â€” Datos no actualizados, decisiones con precauciÃ³n",
+            "icono": "ðŸ“µ", "color": "#ff6b35", "prioridad": 4
+        },
+        {
+            "id": "R64", "categoria": "Sector",
+            "nombre": "SECTOR_FINANCIERO",
+            "condicion": lambda f, p: any(b in f["Empresa"] for b in ["BBVA","BCP","Credicorp"]),
+            "accion": "SECTOR FINANCIERO â€” Regulado por SBS, alta transparencia normativa",
+            "icono": "ðŸ¦", "color": "#4ecdc4", "prioridad": 5
+        },
+        {
+            "id": "R65", "categoria": "Sector",
+            "nombre": "SECTOR_CONSUMO_MASIVO",
+            "condicion": lambda f, p: "Alicorp" in f["Empresa"],
+            "accion": "SECTOR CONSUMO â€” Defensivo ante recesiÃ³n, demanda inelÃ¡stica en PerÃº",
+            "icono": "ðŸ›’", "color": "#4ecdc4", "prioridad": 5
+        },
+        {
+            "id": "R66", "categoria": "Sector",
+            "nombre": "SECTOR_MINERIA",
+            "condicion": lambda f, p: any(m in f["Empresa"] for m in ["Volcan","Southern","Copper"]),
+            "accion": "SECTOR MINERO â€” Correlacionado con precios de metales internacionales",
+            "icono": "â›ï¸", "color": "#ff6b35", "prioridad": 5
+        },
+        {
+            "id": "R67", "categoria": "Sector",
+            "nombre": "SECTOR_CONSTRUCCION",
+            "condicion": lambda f, p: "Pacasmayo" in f["Empresa"],
+            "accion": "SECTOR CONSTRUCCIÃ“N â€” Sensible a inversiÃ³n pÃºblica peruana e infraestructura",
+            "icono": "ðŸ—ï¸", "color": "#ff6b35", "prioridad": 5
+        },
+        {
+            "id": "R68", "categoria": "Sector",
+            "nombre": "SECTOR_INDUSTRIAL",
+            "condicion": lambda f, p: "Ferreycorp" in f["Empresa"],
+            "accion": "SECTOR INDUSTRIAL â€” Ligado a proyectos de infraestructura y minerÃ­a peruana",
+            "icono": "ðŸ”§", "color": "#6c7a95", "prioridad": 5
+        },
+        {
+            "id": "R69", "categoria": "Sector",
+            "nombre": "TICKER_NYSE",
+            "condicion": lambda f, p: f["Ticker"] in ["BAP", "SCCO"],
+            "accion": "DOBLE LISTADO â€” Cotiza en NYSE y BVL, mayor liquidez y visibilidad global",
+            "icono": "ðŸ—½", "color": "#ffd700", "prioridad": 4
+        },
+        {
+            "id": "R70", "categoria": "Sector",
+            "nombre": "TICKER_BVL_LOCAL",
+            "condicion": lambda f, p: f["Ticker"].endswith(".LM"),
+            "accion": "BOLSA LOCAL â€” Ticker exclusivo BVL, liquidez menor que NYSE",
+            "icono": "ðŸ‡µðŸ‡ª", "color": "#6c7a95", "prioridad": 5
+        },
+
+        # CATEGORÃA 8: REGLAS COMBINADAS (R71-R80)
+        {
+            "id": "R71", "categoria": "Combinada",
+            "nombre": "COMBINADA_IDEAL_TOTAL",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 2.0 and f["Precio"] >= 5.0 and f["Sector"] == "BVL Real-Time",
+            "accion": "SEÃ‘AL IDEAL â€” Crecimiento positivo + precio saludable + dato en tiempo real",
+            "icono": "â­", "color": "#ffd700", "prioridad": 1
+        },
+        {
+            "id": "R72", "categoria": "Combinada",
+            "nombre": "COMBINADA_PEOR_CASO",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -3.0 and f["Precio"] < 2.0,
+            "accion": "PEOR CASO â€” CaÃ­da fuerte en activo de bajo precio, salir inmediatamente",
+            "icono": "ðŸ’€", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R73", "categoria": "Combinada",
+            "nombre": "COMBINADA_CONSERVADOR_IDEAL",
+            "condicion": lambda f, p: p == "Conservador" and f["Crecimiento_%"] >= 0.5 and f["Precio"] >= 5.0 and f["Sector"] == "BVL Real-Time",
+            "accion": "PORTAFOLIO CONSERVADOR IDEAL â€” Todos los indicadores alineados",
+            "icono": "ðŸ†", "color": "#00e5a0", "prioridad": 1
+        },
+        {
+            "id": "R74", "categoria": "Combinada",
+            "nombre": "COMBINADA_AGRESIVO_IDEAL",
+            "condicion": lambda f, p: p == "Agresivo" and f["Crecimiento_%"] >= 4.0 and f["Ticker"] in ["BAP","SCCO"],
+            "accion": "OPORTUNIDAD AGRESIVA PREMIUM â€” NYSE + alto crecimiento = seÃ±al excepcional",
+            "icono": "ðŸŽ¯", "color": "#00e5a0", "prioridad": 1
+        },
+        {
+            "id": "R75", "categoria": "Combinada",
+            "nombre": "COMBINADA_BANCO_CRECIMIENTO",
+            "condicion": lambda f, p: any(b in f["Empresa"] for b in ["BBVA","BCP","Credicorp"]) and f["Crecimiento_%"] >= 1.0,
+            "accion": "BANCO EN ALZA â€” Sector financiero creciendo, seÃ±al macroeconÃ³mica positiva",
+            "icono": "ðŸ“ˆ", "color": "#00e5a0", "prioridad": 2
+        },
+        {
+            "id": "R76", "categoria": "Combinada",
+            "nombre": "COMBINADA_MINERIA_PREMIUM_ALZA",
+            "condicion": lambda f, p: "Southern" in f["Empresa"] and f["Crecimiento_%"] >= 1.0 and f["Precio"] >= 80.0,
+            "accion": "MINERÃA PREMIUM ALCISTA â€” Southern Copper fuerte, seÃ±al global de cobre",
+            "icono": "ðŸ¥‡", "color": "#ffd700", "prioridad": 2
+        },
+        {
+            "id": "R77", "categoria": "Combinada",
+            "nombre": "COMBINADA_CONSUMO_ESTABLE",
+            "condicion": lambda f, p: "Alicorp" in f["Empresa"] and abs(f["Crecimiento_%"]) <= 1.5,
+            "accion": "CONSUMO DEFENSIVO â€” Alicorp estable, activo refugio en incertidumbre",
+            "icono": "ðŸ›¡ï¸", "color": "#4ecdc4", "prioridad": 3
+        },
+        {
+            "id": "R78", "categoria": "Combinada",
+            "nombre": "COMBINADA_SEÃ‘AL_MIXTA",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 1.0 and f["Sector"] in ("Demo","Demo BVL"),
+            "accion": "SEÃ‘AL POSITIVA CON DATO DEMO â€” Confirmar con fuente oficial antes de operar",
+            "icono": "ðŸ”", "color": "#ff6b35", "prioridad": 3
+        },
+        {
+            "id": "R79", "categoria": "Combinada",
+            "nombre": "COMBINADA_PORTAFOLIO_BALANCEADO",
+            "condicion": lambda f, p: p == "Moderado" and f["Sector"] == "BVL Real-Time" and 0 <= f["Crecimiento_%"] <= 2.0,
+            "accion": "PORTAFOLIO BALANCEADO â€” Condiciones ideales para portafolio moderado diversificado",
+            "icono": "âš–ï¸", "color": "#4ecdc4", "prioridad": 2
+        },
+        {
+            "id": "R80", "categoria": "Combinada",
+            "nombre": "COMBINADA_ALTO_VALOR_BAJO_RIESGO",
+            "condicion": lambda f, p: f["Precio"] >= 50.0 and f["Crecimiento_%"] >= 0 and f["Sector"] == "BVL Real-Time",
+            "accion": "VALOR CON SEGURIDAD â€” Precio alto + crecimiento positivo + dato real = calidad",
+            "icono": "ðŸ’¼", "color": "#00e5a0", "prioridad": 2
+        },
+
+        # CATEGORÃA 9: ALERTAS Y ADVERTENCIAS (R81-R90)
+        {
+            "id": "R81", "categoria": "Alerta",
+            "nombre": "ALERTA_VOLATILIDAD_EXTREMA",
+            "condicion": lambda f, p: abs(f["Crecimiento_%"]) >= 7.0,
+            "accion": "âš ï¸ VOLATILIDAD EXTREMA â€” Movimiento anormal, verificar noticias corporativas urgente",
+            "icono": "ðŸŒªï¸", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R82", "categoria": "Alerta",
+            "nombre": "ALERTA_PRECIO_CRITICO",
+            "condicion": lambda f, p: f["Precio"] < 0.5,
+            "accion": "PRECIO CRÃTICO â€” Posible desvalorizaciÃ³n severa o problema estructural",
+            "icono": "ðŸš¨", "color": "#ff4757", "prioridad": 1
+        },
+        {
+            "id": "R83", "categoria": "Alerta",
+            "nombre": "ALERTA_DATO_NO_CONFIABLE",
+            "condicion": lambda f, p: f["Sector"] == "Offline",
+            "accion": "DATO NO CONFIABLE â€” Sin conexiÃ³n a yfinance, no operar con estos datos",
+            "icono": "ðŸ”´", "color": "#ff4757", "prioridad": 2
+        },
+        {
+            "id": "R84", "categoria": "Alerta",
+            "nombre": "ALERTA_LIQUIDEZ_BVL",
+            "condicion": lambda f, p: f["Ticker"].endswith(".LM") and f["Crecimiento_%"] >= 5.0,
+            "accion": "ALERTA LIQUIDEZ â€” Alto crecimiento en BVL local, verificar volumen de operaciones",
+            "icono": "ðŸ’§", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R85", "categoria": "Alerta",
+            "nombre": "ALERTA_PERFIL_INCOMPATIBLE",
+            "condicion": lambda f, p: p == "Conservador" and abs(f["Crecimiento_%"]) >= 4.0,
+            "accion": "INCOMPATIBILIDAD DE PERFIL â€” Este activo no es compatible con perfil conservador",
+            "icono": "ðŸš«", "color": "#ff4757", "prioridad": 2
+        },
+        {
+            "id": "R86", "categoria": "Alerta",
+            "nombre": "ALERTA_REVERSAL_POTENCIAL",
+            "condicion": lambda f, p: f["Crecimiento_%"] <= -4.0 and f["Precio"] >= 20.0,
+            "accion": "POSIBLE REVERSAL â€” Activo sÃ³lido en caÃ­da fuerte, monitorear para rebote",
+            "icono": "ðŸ”„", "color": "#3b82f6", "prioridad": 2
+        },
+        {
+            "id": "R87", "categoria": "Alerta",
+            "nombre": "ALERTA_CONCENTRACION_RIESGO",
+            "condicion": lambda f, p: f["Crecimiento_%"] >= 6.0 and p in ("Moderado","Conservador"),
+            "accion": "RIESGO CONCENTRACIÃ“N â€” No destinar mÃ¡s del 20% del portafolio a este activo",
+            "icono": "ðŸ“Š", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R88", "categoria": "Alerta",
+            "nombre": "ALERTA_MACROECONOMICA_PERU",
+            "condicion": lambda f, p: f["Ticker"].endswith(".LM") and f["Crecimiento_%"] <= -3.0,
+            "accion": "SEÃ‘AL MACRO â€” CaÃ­da en BVL local puede reflejar riesgo polÃ­tico o econÃ³mico peruano",
+            "icono": "ðŸ‡µðŸ‡ª", "color": "#ff6b35", "prioridad": 2
+        },
+        {
+            "id": "R89", "categoria": "Alerta",
+            "nombre": "ALERTA_TIPO_CAMBIO",
+            "condicion": lambda f, p: f["Ticker"] in ["BAP","SCCO"] and f["Crecimiento_%"] <= -2.0,
+            "accion": "RIESGO CAMBIARIO â€” CaÃ­da en NYSE puede afectar por tipo de cambio USD/PEN",
+            "icono": "ðŸ’±", "color": "#ff6b35", "prioridad": 3
+        },
+        {
+            "id": "R90", "categoria": "Alerta",
+            "nombre": "ALERTA_REVISION_PERIODICA",
+            "condicion": lambda f, p: f["Sector"] == "BVL Real-Time" and abs(f["Crecimiento_%"]) <= 0.3,
+            "accion": "REVISIÃ“N PERIÃ“DICA â€” Activo en lateralizaciÃ³n, revisar cada 5 dÃ­as",
+            "icono": "ðŸ””", "color": "#6c7a95", "prioridad": 5
+        },
+    ]
+
+    def evaluar(self, df, perfil: str) -> list:
+        """
+        EvalÃºa todas las reglas sobre el DataFrame.
+        Retorna lista de hechos activados ordenados por prioridad.
+        """
+        hechos_activados = []
+
+        for _, fila in df.iterrows():
+            reglas_empresa = []
+
+            for regla in self.REGLAS:
+                try:
+                    if regla["condicion"](fila, perfil):
+                        reglas_empresa.append({
+                            "empresa":  fila["Empresa"],
+                            "ticker":   fila["Ticker"],
+                            "regla":    f"[{regla['id']}] {regla['nombre']}",
+                            "accion":   regla["accion"],
+                            "icono":    regla["icono"],
+                            "color":    regla["color"],
+                            "prioridad": regla.get("prioridad", 5),
+                            "categoria": regla.get("categoria", "General"),
+                        })
+                except Exception as e:
+                    continue
+
+            # Ordenar por prioridad y tomar mÃ¡ximo 3 reglas por empresa
+            reglas_empresa.sort(key=lambda x: x["prioridad"])
+            hechos_activados.extend(reglas_empresa[:3])
+
+        # Si ninguna regla disparÃ³ para una empresa
+        empresas_con_regla = {h["empresa"] for h in hechos_activados}
+        for _, fila in df.iterrows():
+            if fila["Empresa"] not in empresas_con_regla:
+                hechos_activados.append({
+                    "empresa":   fila["Empresa"],
+                    "ticker":    fila["Ticker"],
+                    "regla":     "[R00] SIN_SEÃ‘AL_CLARA",
+                    "accion":    "OBSERVAR â€” No se detectÃ³ seÃ±al definida. Monitorear.",
+                    "icono":     "ðŸ‘ï¸",
+                    "color":     "#6c7a95",
+                    "prioridad": 5,
+                    "categoria": "General",
+                })
+
+        return hechos_activados
+
+    def exportar_lisp(self, df, perfil: str, ruta: str = None):
+        """Exporta hechos evaluados al formato CLIPS .lisp"""
+        import os
+        if ruta is None:
+            base = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), '..', 'data')
+            )
+            os.makedirs(base, exist_ok=True)
+            ruta = os.path.join(base, 'reglas_evaluadas.lisp')
+
+        hechos = self.evaluar(df, perfil)
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(f"; Reglas evaluadas â€” Perfil: {perfil}\n")
+            f.write(f"; Total reglas activadas: {len(hechos)}\n")
+            f.write(f"; Motor: ClipsRulesEngine v2.0 â€” 90 reglas\n\n")
+            f.write("(setq hechos-reglas '(\n")
+            for h in hechos:
+                f.write(
+                    f'  ("{h["empresa"]}" "{h["ticker"]}" '
+                    f'"{h["regla"]}" "{h["accion"]}" "{h["categoria"]}")\n'
+                )
+            f.write("))\n")
+        print(f"âœ… Reglas exportadas: {ruta}")
+        return ruta
+
+    def resumen_por_categoria(self, df, perfil: str) -> dict:
+        """Devuelve conteo de reglas activadas por categorÃ­a."""
+        hechos = self.evaluar(df, perfil)
+        resumen = {}
+        for h in hechos:
+            cat = h.get("categoria", "General")
+            resumen[cat] = resumen.get(cat, 0) + 1
+        return resumen
+
+-----------------------------------------
+ARCHIVO: conversational_response.py
+TamaÃ±o: 9.25 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:06:07
+-----------------------------------------
+"""conversational_response.py â€” Generador de Respuestas Conversacionales
+
+Crea respuestas naturales tipo humano usando anÃ¡lisis combinado."""
+
+from datetime import datetime
+
+
+class ConversationalResponseGenerator:
+    """Genera respuestas conversacionales y naturales para inversiones."""
+    
+    def __init__(self):
+        self.tonos = ["analista_experto", "asesor_amable", "inversor_experimentado"]
+    
+    def generar_analisis_conversacional(self, ticker, empresa, datos_completos):
+        """
+        Genera un anÃ¡lisis conversacional completo.
+        datos_completos debe contener:
+        - recomendacion (score + tipo)
+        - noticias (resumen + tendencia)
+        - predicciones (corto/mediano/largo plazo)
+        - catalistas (positivos/negativos)
+        """
+        
+        recomendacion = datos_completos.get('recomendacion', {})
+        noticias = datos_completos.get('noticias', {})
+        predicciones = datos_completos.get('predicciones', {})
+        catalistas = datos_completos.get('catalistas', {})
+        
+        # Generar cada secciÃ³n de manera conversacional
+        seccion_bienvenida = self._generar_bienvenida(empresa, ticker)
+        seccion_resumen_actual = self._generar_resumen_actual(empresa, recomendacion, noticias)
+        seccion_noticias = self._generar_seccion_noticias(empresa, noticias)
+        seccion_catalistas = self._generar_seccion_catalistas(empresa, catalistas)
+        seccion_predicciones = self._generar_seccion_predicciones(empresa, predicciones)
+        seccion_recomendacion_final = self._generar_recomendacion_final(empresa, recomendacion, predicciones)
+        
+        # Combinar todo
+        respuesta_completa = f"""{seccion_bienvenida}
+
+{seccion_resumen_actual}
+
+{seccion_noticias}
+
+{seccion_catalistas}
+
+{seccion_predicciones}
+
+{seccion_recomendacion_final}
+"""
+        return respuesta_completa.strip()
+    
+    def _generar_bienvenida(self, empresa, ticker):
+        """Genera bienvenida conversacional."""
+        return f"Hola, te presento mi anÃ¡lisis detallado de {empresa} ({ticker}).\n\nHeaquÃ­ lo que veo en el mercado ahora mismo:"
+    
+    def _generar_resumen_actual(self, empresa, recomendacion, noticias):
+        """Genera resumen actual de la situaciÃ³n."""
+        score = recomendacion.get('score_final', 50)
+        rec_tipo = recomendacion.get('recomendacion', 'NEUTRAL')
+        tendencia = noticias.get('tendencia', 'neutral')
+        
+        # Traducir score a palabras
+        if score >= 80:
+            sentimiento = "muy positivo, con vientos a favor"
+        elif score >= 70:
+            sentimiento = "positivo, con buenas perspectivas"
+        elif score >= 60:
+            sentimiento = "moderadamente positivo"
+        elif score >= 50:
+            sentimiento = "neutral, sin tendencia clara"
+        elif score >= 40:
+            sentimiento = "algo preocupante, con seÃ±ales mixtas"
+        else:
+            sentimiento = "negativo, con desafÃ­os por delante"
+        
+        resumen = f"""PANORAMA ACTUAL:
+En este momento, {empresa} se ve {sentimiento}. El mercado le asigna 
+un score de {score}/100, lo que sugiere una recomendaciÃ³n de {rec_tipo}.
+
+Las noticias recientes pintan un cuadro {tendencia} alrededor de la empresa.
+Esto es importante porque refuerza o contradice lo que vemos en los nÃºmeros."""
+        
+        return resumen
+    
+    def _generar_seccion_noticias(self, empresa, noticias):
+        """Genera secciÃ³n sobre noticias."""
+        resumen_noticias = noticias.get('resumen', '')
+        tendencia = noticias.get('tendencia', 'neutral')
+        
+        if tendencia == "muy positiva":
+            tono = "Las noticias son muy alentadoras"
+        elif tendencia == "positiva":
+            tono = "Las noticias son generalmente positivas"
+        elif tendencia == "neutral":
+            tono = "Las noticias son mixtas, sin un patrÃ³n claro"
+        elif tendencia == "negativa":
+            tono = "Las noticias son preocupantes"
+        else:
+            tono = "Las noticias son muy negativas"
+        
+        seccion = f"""\nÂ¿CUAL ES LA NOTICIA?
+{tono}. AquÃ­ estÃ¡ lo que estÃ¡ pasando:
+
+{resumen_noticias}
+
+Esto importa porque refleja la realidad del negocio: si las noticias son 
+positivas, probablemente el precio subirÃ¡ en el futuro."""
+        
+        return seccion
+    
+    def _generar_seccion_catalistas(self, empresa, catalistas):
+        """Genera secciÃ³n sobre catalizadores."""
+        positivos = catalistas.get('catalistas_positivos', [])
+        negativos = catalistas.get('catalistas_negativos', [])
+        
+        seccion = "\nTENGAS EN CUENTA ESTO (Catalistas):\n"
+        
+        if positivos:
+            seccion += "\nA FAVOR de {}: \n".format(empresa)
+            for cat in positivos[:2]:
+                seccion += f"- {cat.get('titulo', 'Evento positivo')}\n"
+        
+        if negativos:
+            seccion += "\nEN CONTRA de {}: \n".format(empresa)
+            for cat in negativos[:2]:
+                seccion += f"- {cat.get('titulo', 'Evento negativo')}\n"
+        
+        if not positivos and not negativos:
+            seccion += "No hay catalistas claros en el corto plazo."
+        
+        return seccion
+    
+    def _generar_seccion_predicciones(self, empresa, predicciones):
+        """Genera secciÃ³n sobre predicciones futuras."""
+        
+        pred_corto = predicciones.get('corto_plazo', {})
+        pred_mediano = predicciones.get('mediano_plazo', {})
+        pred_largo = predicciones.get('largo_plazo', {})
+        escenarios = predicciones.get('escenarios', {})
+        
+        seccion = f"""\nMIS PREDICCIONES PARA {empresa.upper()}:
+
+1. CORTO PLAZO (prÃ³ximas 4 semanas):
+   Espero que {pred_corto.get('direccion', 'se mantenga').lower()}
+   Confianza: {pred_corto.get('confianza', 'media')}
+
+2. MEDIANO PLAZO (3-6 meses):
+   Tendencia: {pred_mediano.get('direccion', 'neutral').lower()}
+   Expectativa: {pred_mediano.get('prediccion_score', 50)}/100
+
+3. LARGO PLAZO (1+ anos):
+   Potencial de largo plazo: {pred_largo.get('potencial', 'moderado')}
+   Mi outlook: {pred_largo.get('outlook', 'Mantener y monitorear')}
+
+ESCENARIOS DE PRECIO:
+"""
+        if escenarios:
+            sec = escenarios
+            seccion += f"""
+- Escenario BAJISTA (20% probabilidad): 
+  Precio esperado: S/. {sec['escenario_bajista']['precio_esperado']}
+  ({sec['escenario_bajista']['cambio_porcentaje']:+.2f}%)
+
+- Escenario BASE (60% probabilidad): 
+  Precio esperado: S/. {sec['escenario_base']['precio_esperado']}
+  ({sec['escenario_base']['cambio_porcentaje']:+.2f}%)
+  
+- Escenario ALCISTA (20% probabilidad): 
+  Precio esperado: S/. {sec['escenario_alcista']['precio_esperado']}
+  ({sec['escenario_alcista']['cambio_porcentaje']:+.2f}%)
+"""
+        
+        return seccion
+    
+    def _generar_recomendacion_final(self, empresa, recomendacion, predicciones):
+        """Genera recomendaciÃ³n final conversacional."""
+        
+        rec_tipo = recomendacion.get('recomendacion', 'NEUTRAL')
+        score = recomendacion.get('score_final', 50)
+        
+        # Generar argumentaciÃ³n
+        if score >= 80:
+            argumento = f"""{empresa} es una COMPRA FUERTE. Los nÃºmeros son sÃ³lidos, 
+las noticias son positivas, y las predicciones sugieren crecimiento. 
+Si tienes perfil de riesgo moderado a agresivo, esta es una oportunidad."""
+        elif score >= 70:
+            argumento = f"""{empresa} es una BUENA COMPRA. Tiene fundamentales sÃ³lidos 
+y noticias positivas. Recomendado para inversores dispuestos a esperar 
+resultados en los prÃ³ximos meses."""
+        elif score >= 55:
+            argumento = f"""{empresa} vale la pena MANTENER. No es un "no comprar", 
+pero tampoco es momento de agregar posiciones. Espera seÃ±ales mÃ¡s claras."""
+        elif score >= 40:
+            argumento = f"""Sugiero VENDER o no entrar en {empresa}. Las seÃ±ales son 
+negativas y hay mejores oportunidades en el mercado."""
+        else:
+            argumento = f"""Evita {empresa} por ahora. El outlook es negativo y 
+el riesgo/recompensa no justifica la inversiÃ³n en este momento."""
+        
+        seccion = f"""\nMI RECOMENDACIÃ“N FINAL:
+
+{argumento}
+
+SCORE FINAL: {score}/100 â†’ {rec_tipo}
+
+Disclaimer: Este anÃ¡lisis es informativo. Consulta con un asesor 
+financiero certificado antes de tomar decisiones de inversiÃ³n. 
+Los mercados son impredecibles y el pasado no garantiza el futuro.
+"""
+        
+        return seccion
+    
+    def generar_respuesta_rapida(self, ticker, empresa, score_final, recomendacion):
+        """Genera una respuesta rÃ¡pida de una lÃ­nea."""
+        if score_final >= 75:
+            return f"{empresa}: Es momento de COMPRAR. Score {score_final}/100. Buenas noticias y potencial al alza."
+        elif score_final >= 65:
+            return f"{empresa}: COMPRA recomendada. Score {score_final}/100. Fundamentales positivos."
+        elif score_final >= 55:
+            return f"{empresa}: MANTÃ‰N tu posiciÃ³n. Score {score_final}/100. Neutral, espera claridad."
+        elif score_final >= 40:
+            return f"{empresa}: Considera VENDER. Score {score_final}/100. SeÃ±ales negativas."
+        else:
+            return f"{empresa}: EVITA por ahora. Score {score_final}/100. Outlook muy negativo."
+
+
+
+-----------------------------------------
+ARCHIVO: copiar_contenido.ps1
+TamaÃ±o: 3.03 KB
+Ãšltima modificaciÃ³n: 07/05/2026 04:27:10
+-----------------------------------------
+# Script para leer todos los archivos en la ruta actual y copiar su contenido a un .txt
+
+# Obtener la ruta actual
+$rutaActual = Get-Location
+
+# Definir nombre del archivo de salida con fecha y hora
+$fecha = Get-Date -Format "yyyyMMdd_HHmmss"
+$archivoSalida = "contenido_completo_$fecha.txt"
+
+# Obtener todos los archivos en la ruta actual (excluyendo el archivo de salida)
+$archivos = Get-ChildItem -File | Where-Object { $_.Name -ne $archivoSalida }
+
+# Verificar si hay archivos para procesar
+if ($archivos.Count -eq 0) {
+    Write-Host "No hay archivos en la ruta actual para procesar." -ForegroundColor Yellow
+    exit
+}
+
+Write-Host "Procesando archivos en: $rutaActual" -ForegroundColor Cyan
+Write-Host "Archivos encontrados: $($archivos.Count)" -ForegroundColor Green
+
+# Crear el archivo de salida
+$contenidoTotal = @()
+
+# Agregar encabezado
+$contenidoTotal += "========================================="
+$contenidoTotal += "CONTENIDO DE TODOS LOS ARCHIVOS"
+$contenidoTotal += "Ruta: $rutaActual"
+$contenidoTotal += "Fecha: $(Get-Date)"
+$contenidoTotal += "Total de archivos: $($archivos.Count)"
+$contenidoTotal += "========================================="
+$contenidoTotal += ""
+
+# Procesar cada archivo
+foreach ($archivo in $archivos) {
+    Write-Host "Leyendo archivo: $($archivo.Name)" -ForegroundColor Gray
+    
+    # Agregar separador y nombre del archivo
+    $contenidoTotal += "-----------------------------------------"
+    $contenidoTotal += "ARCHIVO: $($archivo.Name)"
+    $contenidoTotal += "TamaÃ±o: $([math]::Round($archivo.Length/1KB, 2)) KB"
+    $contenidoTotal += "Ãšltima modificaciÃ³n: $($archivo.LastWriteTime)"
+    $contenidoTotal += "-----------------------------------------"
+    
+    # Intentar leer el contenido del archivo
+    try {
+        $contenido = Get-Content -Path $archivo.FullName -Raw -ErrorAction Stop
+        $contenidoTotal += $contenido
+    } catch {
+        $contenidoTotal += "[ERROR] No se pudo leer el archivo: $($_.Exception.Message)"
+        Write-Host "Error al leer archivo $($archivo.Name): $($_.Exception.Message)" -ForegroundColor Red
+    }
+    
+    $contenidoTotal += ""  # LÃ­nea en blanco entre archivos
+}
+
+# Agregar pie de pÃ¡gina
+$contenidoTotal += "========================================="
+$contenidoTotal += "FIN DEL CONTENIDO"
+$contenidoTotal += "========================================="
+
+# Guardar todo en el archivo de salida
+try {
+    $contenidoTotal | Out-File -FilePath $archivoSalida -Encoding UTF8
+    Write-Host "`nContenido guardado exitosamente en: $archivoSalida" -ForegroundColor Green
+    Write-Host "TamaÃ±o del archivo de salida: $([math]::Round((Get-Item $archivoSalida).Length/1KB, 2)) KB" -ForegroundColor Green
+} catch {
+    Write-Host "Error al guardar el archivo: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Mostrar estadÃ­sticas
+Write-Host "`nResumen:" -ForegroundColor Cyan
+Write-Host "  - Archivos procesados: $($archivos.Count)" -ForegroundColor White
+Write-Host "  - Archivo de salida: $archivoSalida" -ForegroundColor White
+
+-----------------------------------------
+ARCHIVO: expert_brain.py
+TamaÃ±o: 21.63 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""expert_brain.py â€” Motor de Razonamiento con Gemini AI
+AnÃ¡lisis humanizado + noticias reales + predicciones integradas
+Transformer: Gemini 1.5 Flash â€” modelo fundacional basado en arquitectura Transformer (Google)
+TÃ©cnica: Few-shot prompting + Chain-of-Thought para clasificaciÃ³n Text-to-Text
+"""
+import json
+import requests
+import time
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
+class ExpertBrain:
+
+    BASE_URL   = "https://generativelanguage.googleapis.com/v1beta"
+    TIMEOUT    = 30
+    REINTENTOS = 3
+
+    def __init__(self):
+        self.API_KEY  = os.environ.get("GEMINI_API_KEY", "")
+        self.MODELO   = os.environ.get("GEMINI_MODEL", "models/gemini-2.5-flash-lite")
+        self.AV_KEY   = os.environ.get("ALPHA_VANTAGE_KEY", "")
+        self.NEWS_KEY = os.environ.get("NEWS_API_KEY", "")
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # GEMINI â€” Motor base
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def _generar(self, prompt: str) -> str:
+        for intento in range(self.REINTENTOS):
+            try:
+                resp = requests.post(
+                    f"{self.BASE_URL}/{self.MODELO}:generateContent?key={self.API_KEY}",
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    timeout=self.TIMEOUT
+                ).json()
+
+                if "candidates" in resp:
+                    return resp["candidates"][0]["content"]["parts"][0]["text"]
+
+                error      = resp.get("error", {})
+                error_code = error.get("code", 0)
+                error_msg  = error.get("message", str(resp))
+
+                if error_code == 429:
+                    espera = 15 * (intento + 1)
+                    print(f"Cuota excedida, esperando {espera}s... (intento {intento+1}/{self.REINTENTOS})")
+                    time.sleep(espera)
+                    continue
+
+                if any(x in error_msg.lower() for x in ["high demand", "overloaded", "experiencing", "try again"]):
+                    espera = 15 * (intento + 1)
+                    print(f"Servidor ocupado, esperando {espera}s... (intento {intento+1}/{self.REINTENTOS})")
+                    time.sleep(espera)
+                    continue
+
+                if error_code == 503:
+                    print(f"Servicio no disponible, esperando 20s... (intento {intento+1}/{self.REINTENTOS})")
+                    time.sleep(20)
+                    continue
+
+                print(f"Error Gemini: {error_msg}")
+                return f"Error de Gemini: {error_msg}"
+
+            except requests.exceptions.Timeout:
+                print(f"Timeout intento {intento+1}/{self.REINTENTOS}")
+                if intento < self.REINTENTOS - 1:
+                    time.sleep(5)
+                    continue
+                return "Gemini no respondiÃ³ a tiempo. Intenta de nuevo."
+
+            except requests.exceptions.ConnectionError:
+                return "Sin conexiÃ³n a internet. Verifica tu red."
+
+            except Exception as e:
+                if intento < self.REINTENTOS - 1:
+                    time.sleep(3)
+                    continue
+                return f"Error inesperado: {str(e)}"
+
+        return "Gemini sigue con alta demanda. Espera unos minutos e intenta de nuevo."
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # CLASIFICACIÃ“N DE SENTIMIENTO â€” Transformer Text-to-Text
+    # TÃ©cnica: Few-shot prompting + Chain-of-Thought
+    # Optimizado para mercado minero peruano (reduce error del 20%)
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def clasificar_sentimiento_noticia(self, titulo: str, ticker: str = "") -> dict:
+        """
+        Clasifica sentimiento de una noticia financiera.
+        Arquitectura: Text-to-Text (secuencia â†’ etiqueta discreta)
+        TÃ©cnica: Few-shot learning + Chain-of-Thought reasoning
+        """
+        prompt = f"""Eres un analista financiero senior especializado en el mercado peruano (BVL) y commodities.
+Tu tarea es clasificar el sentimiento de noticias financieras usando el enfoque Text-to-Text:
+INPUT: titular de noticia financiera â†’ OUTPUT: etiqueta de sentimiento discreta
+
+CONTEXTO DEL MERCADO PERUANO:
+- Empresas mineras clave: Volcan (zinc/plata), Southern Copper (cobre), Buenaventura (oro/plata)
+- Variables crÃ­ticas: precio del cobre en LME, conflictos sociales, licencias ambientales, tipo de cambio USD/PEN
+- Una huelga o conflicto social en minerÃ­a = BEARISH aunque el precio del metal suba
+- Precios de cobre >$4.00/lb = contexto BULLISH para mineras
+- ResoluciÃ³n de conflictos ambientales = BULLISH aunque no haya cambio inmediato en precio
+
+EJEMPLOS DE CLASIFICACIÃ“N (few-shot):
+
+Noticia: "Southern Copper reporta producciÃ³n rÃ©cord de cobre en Q3 2024"
+Razonamiento: Mayor producciÃ³n implica mayores ingresos y seÃ±al positiva para el accionista
+ClasificaciÃ³n: BULLISH
+
+Noticia: "Comunidades bloquean acceso a mina de Volcan en JunÃ­n por tercer dÃ­a"
+Razonamiento: Bloqueo = paralizaciÃ³n de operaciones = pÃ©rdida de producciÃ³n = impacto negativo directo
+ClasificaciÃ³n: BEARISH
+
+Noticia: "Precio del cobre se mantiene estable en $3.85/lb en mercados internacionales"
+Razonamiento: Sin movimiento significativo, ni positivo ni negativo para las mineras
+ClasificaciÃ³n: NEUTRAL
+
+Noticia: "Gobierno peruano aprueba nueva normativa ambiental para sector minero"
+Razonamiento: Ambiguo â€” puede significar mayores costos o mayor certeza regulatoria. Sin direcciÃ³n clara.
+ClasificaciÃ³n: NEUTRAL
+
+Noticia: "Volcan Minera anuncia cierre temporal de operaciones por mantenimiento preventivo"
+Razonamiento: Cierre temporal planificado no es problema estructural. Impacto mÃ­nimo y esperado.
+ClasificaciÃ³n: NEUTRAL
+
+AHORA CLASIFICA ESTA NOTICIA:
+Ticker relacionado: {ticker if ticker else "BVL General"}
+Noticia: "{titulo}"
+
+Responde EXACTAMENTE en este formato JSON sin markdown ni texto adicional:
+{{"razonamiento": "<una oraciÃ³n explicando por quÃ©>", "clasificacion": "BULLISH", "confianza": 0.0}}
+
+El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
+
+        resultado = self._generar(prompt)
+
+        try:
+            clean = resultado.strip().removeprefix("```json").removesuffix("```").strip()
+            data  = json.loads(clean)
+            clasificacion = data.get("clasificacion", "NEUTRAL").upper()
+
+            # Validar que sea una etiqueta vÃ¡lida
+            if clasificacion not in ("BULLISH", "BEARISH", "NEUTRAL"):
+                clasificacion = "NEUTRAL"
+
+            return {
+                "clasificacion": clasificacion,
+                "confianza":     float(data.get("confianza", 0.5)),
+                "razonamiento":  data.get("razonamiento", "")
+            }
+        except Exception:
+            # Fallback: buscar etiqueta en texto libre
+            texto = resultado.upper()
+            if "BULLISH" in texto:
+                return {"clasificacion": "BULLISH", "confianza": 0.5, "razonamiento": resultado[:200]}
+            elif "BEARISH" in texto:
+                return {"clasificacion": "BEARISH", "confianza": 0.5, "razonamiento": resultado[:200]}
+            return {"clasificacion": "NEUTRAL", "confianza": 0.3, "razonamiento": resultado[:200]}
+
+    def clasificar_sentimiento_batch(self, noticias: list[dict]) -> list[dict]:
+        """
+        Clasifica mÃºltiples noticias y devuelve resultado agregado.
+        noticias: lista de dicts con 'titulo' y 'ticker'
+        """
+        resultados = []
+        for noticia in noticias:
+            resultado = self.clasificar_sentimiento_noticia(
+                titulo=noticia.get("titulo", ""),
+                ticker=noticia.get("ticker", "")
+            )
+            resultado["titulo"] = noticia.get("titulo", "")
+            resultado["ticker"] = noticia.get("ticker", "")
+            resultados.append(resultado)
+
+        # Calcular sentimiento agregado
+        conteo = {"BULLISH": 0, "BEARISH": 0, "NEUTRAL": 0}
+        for r in resultados:
+            conteo[r["clasificacion"]] += 1
+
+        if conteo["BULLISH"] > conteo["BEARISH"]:
+            agregado = "BULLISH"
+        elif conteo["BEARISH"] > conteo["BULLISH"]:
+            agregado = "BEARISH"
+        else:
+            agregado = "NEUTRAL"
+
+        return {
+            "resultados":   resultados,
+            "agregado":     agregado,
+            "conteo":       conteo,
+            "total":        len(resultados)
+        }
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # NOTICIAS EXTERNAS (Alpha Vantage + NewsAPI)
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def _buscar_noticias_externas(self, tickers: list) -> str:
+        encontradas = []
+
+        for ticker in tickers[:4]:
+            try:
+                r = requests.get(
+                    f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT"
+                    f"&tickers={ticker}&apikey={self.AV_KEY}&limit=2",
+                    timeout=5
+                ).json()
+                if "feed" in r and r["feed"]:
+                    for n in r["feed"][:2]:
+                        titulo      = n.get("title", "")
+                        sentimiento = n.get("overall_sentiment_label", "Neutral")
+                        fecha       = n.get("time_published", "")[:8]
+                        if titulo:
+                            encontradas.append(
+                                f"[{ticker}] {titulo} "
+                                f"(Sentimiento: {sentimiento}, Fecha: {fecha})"
+                            )
+                    continue
+            except:
+                pass
+
+            try:
+                r = requests.get(
+                    f"https://newsapi.org/v2/everything?q={ticker}"
+                    f"&language=es&sortBy=publishedAt&pageSize=2"
+                    f"&apiKey={self.NEWS_KEY}",
+                    timeout=5
+                ).json()
+                if "articles" in r and r["articles"]:
+                    for art in r["articles"][:2]:
+                        titulo = art.get("title", "")
+                        fecha  = art.get("publishedAt", "")[:10]
+                        if titulo and "[Removed]" not in titulo:
+                            encontradas.append(f"[{ticker}] {titulo} (Fecha: {fecha})")
+            except:
+                pass
+
+        return "\n".join(encontradas) if encontradas else ""
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # NOTICIAS LOCALES (NewsAnalyzer)
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def _noticias_locales(self, tickers: list) -> str:
+        try:
+            from agents.news_analyzer import NewsAnalyzer
+            analyzer = NewsAnalyzer()
+            bloques  = []
+
+            for ticker in tickers:
+                resumen    = analyzer.generar_resumen_noticias(ticker)
+                tendencia  = analyzer.analizar_tendencia(ticker)
+                catalistas = analyzer.detectar_catalistas(ticker)
+
+                pos = [c["titulo"] for c in catalistas.get("catalistas_positivos", [])]
+                neg = [c["titulo"] for c in catalistas.get("catalistas_negativos", [])]
+
+                bloque = f"[{ticker}] Tendencia: {tendencia['tendencia']}\n{resumen}"
+                if pos:
+                    bloque += f"  A favor: {', '.join(pos[:2])}\n"
+                if neg:
+                    bloque += f"  Riesgo: {', '.join(neg[:2])}\n"
+
+                bloques.append(bloque)
+
+            return "\n".join(bloques)
+        except Exception as e:
+            print(f"NewsAnalyzer no disponible: {e}")
+            return ""
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # PREDICCIONES (PredictionEngine)
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def _obtener_predicciones(self, tickers: list, df) -> str:
+        try:
+            from agents.prediction_engine import PredictionEngine
+            from agents.news_analyzer import NewsAnalyzer
+
+            engine   = PredictionEngine()
+            analyzer = NewsAnalyzer()
+            bloques  = []
+
+            for _, row in df.iterrows():
+                ticker      = row["Ticker"]
+                precio      = row["Precio"]
+                crecimiento = row["Crecimiento_%"]
+
+                score      = 50 + min(max(crecimiento * 5, -40), 40)
+                catalistas = analyzer.detectar_catalistas(ticker)
+
+                corto      = engine.predecir_corto_plazo(ticker, score, catalistas)
+                mediano    = engine.predecir_mediano_plazo(ticker, score, 50)
+                largo      = engine.predecir_largo_plazo(ticker, score, 70)
+                escenarios = engine.generar_escenarios(ticker, precio, score)
+
+                bloques.append(
+                    f"[{ticker}]\n"
+                    f"  Corto plazo ({corto['periodo']}): {corto['direccion']} "
+                    f"â€” confianza {corto['confianza']}\n"
+                    f"  Mediano plazo ({mediano['periodo']}): {mediano['direccion']}\n"
+                    f"  Largo plazo ({largo['periodo']}): {largo['potencial']} â€” {largo['outlook']}\n"
+                    f"  Escenario bajista (20%): S/. {escenarios['escenario_bajista']['precio_esperado']} "
+                    f"({escenarios['escenario_bajista']['cambio_porcentaje']}%)\n"
+                    f"  Escenario base    (60%): S/. {escenarios['escenario_base']['precio_esperado']} "
+                    f"({escenarios['escenario_base']['cambio_porcentaje']}%)\n"
+                    f"  Escenario alcista (20%): S/. {escenarios['escenario_alcista']['precio_esperado']} "
+                    f"({escenarios['escenario_alcista']['cambio_porcentaje']}%)\n"
+                )
+
+            return "\n".join(bloques)
+        except Exception as e:
+            print(f"PredictionEngine no disponible: {e}")
+            return ""
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ANÃLISIS PRINCIPAL
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def procesar_estrategia(self, datos_mercado) -> str:
+        """AnÃ¡lisis humanizado con noticias + predicciones + sentimiento transformer."""
+        filas   = []
+        tickers = []
+        for _, row in datos_mercado.iterrows():
+            tendencia = "subiendo" if row["Crecimiento_%"] >= 0 else "bajando"
+            filas.append(
+                f"â€¢ {row['Empresa']} ({row['Ticker']}): "
+                f"S/. {row['Precio']} â€” {tendencia} {abs(row['Crecimiento_%'])}% hoy"
+            )
+            tickers.append(row["Ticker"])
+
+        resumen_mercado = "\n".join(filas)
+
+        print("Buscando noticias externas...")
+        noticias_ext = self._buscar_noticias_externas(tickers)
+
+        print("Consultando base de noticias local...")
+        noticias_loc = self._noticias_locales(tickers)
+
+        # â”€â”€ ClasificaciÃ³n de sentimiento con Transformer â”€â”€
+        print("Clasificando sentimiento con modelo Transformer...")
+        sentimiento_mercado = self._clasificar_sentimiento_mercado(
+            noticias_ext, noticias_loc, tickers
+        )
+
+        noticias = ""
+        if noticias_ext:
+            noticias += "NOTICIAS EN TIEMPO REAL:\n" + noticias_ext + "\n\n"
+        if noticias_loc:
+            noticias += "ANÃLISIS DETALLADO:\n" + noticias_loc
+        if not noticias:
+            noticias = "No se encontraron noticias recientes."
+
+        print("Generando predicciones...")
+        predicciones = self._obtener_predicciones(tickers, datos_mercado)
+        if not predicciones:
+            predicciones = "Predicciones no disponibles."
+
+        prompt = f"""
+Eres Pfinance, un asesor financiero peruano con 15 aÃ±os de experiencia en la BVL.
+Eres directo, cercano y honesto. Hablas como si le explicaras las cosas a un amigo 
+de confianza que quiere invertir pero no domina las finanzas.
+Nunca usas jerga innecesaria. Si algo es incierto, lo dices sin rodeos.
+
+Tienes esta informaciÃ³n del portafolio de hoy:
+
+â•â•â• PRECIOS DE HOY â•â•â•
+{resumen_mercado}
+
+â•â•â• SENTIMIENTO DEL MERCADO (AnÃ¡lisis Transformer) â•â•â•
+{sentimiento_mercado}
+
+â•â•â• NOTICIAS RECIENTES â•â•â•
+{noticias}
+
+â•â•â• PREDICCIONES â•â•â•
+{predicciones}
+
+Escribe el anÃ¡lisis de forma natural y conversacional, siguiendo esta estructura:
+
+1. Â¿QUÃ‰ ESTÃ PASANDO HOY?
+   Explica en 2-3 pÃ¡rrafos lo que ves. No solo leas los nÃºmeros, 
+   conÃ©ctalos con el contexto. Menciona el sentimiento general del mercado.
+
+2. Â¿QUÃ‰ DICEN LAS NOTICIAS?
+   Relaciona las noticias con los movimientos de precio de cada empresa.
+   Â¿Hay algo que explique por quÃ© sube o baja?
+
+3. Â¿QUÃ‰ HARÃAS TÃš?
+   Para cada empresa: Â¿comprarÃ­as, venderÃ­as o esperarÃ­as? 
+   SÃ© directo y explica el razonamiento en tÃ©rminos simples.
+
+4. Â¿QUÃ‰ PODRÃA PASAR?
+   Usa los 3 escenarios (bajista, base, alcista) de las predicciones.
+
+5. MI CONSEJO FINAL
+   Un pÃ¡rrafo personal y directo sobre el portafolio completo.
+
+Reglas: EspaÃ±ol natural, mÃ¡ximo 600 palabras, pÃ¡rrafos que fluyan.
+"""
+        return self._generar(prompt)
+
+    def _clasificar_sentimiento_mercado(
+        self, noticias_ext: str, noticias_loc: str, tickers: list
+    ) -> str:
+        """
+        Extrae titulares y clasifica sentimiento con el modelo Transformer.
+        Retorna resumen de sentimiento para incluir en el prompt principal.
+        """
+        # Extraer titulares de noticias externas
+        titulares = []
+        if noticias_ext:
+            for linea in noticias_ext.split("\n"):
+                linea = linea.strip()
+                if linea and linea.startswith("["):
+                    # Formato: [TICKER] Titular (Sentimiento: X, Fecha: Y)
+                    partes = linea.split("]", 1)
+                    if len(partes) > 1:
+                        ticker  = partes[0].replace("[", "").strip()
+                        titular = partes[1].split("(Sentimiento:")[0].strip()
+                        if titular:
+                            titulares.append({"titulo": titular, "ticker": ticker})
+
+        # Si no hay titulares externos, usar contexto de noticias locales
+        if not titulares and noticias_loc:
+            for ticker in tickers[:3]:
+                titulares.append({
+                    "titulo": f"AnÃ¡lisis de mercado para {ticker}",
+                    "ticker": ticker
+                })
+
+        if not titulares:
+            return "Sentimiento: NEUTRAL â€” Sin noticias disponibles para clasificar."
+
+        # Clasificar mÃ¡ximo 3 noticias para no consumir demasiados tokens
+        resultado = self.clasificar_sentimiento_batch(titulares[:3])
+
+        # Formatear para el prompt
+        emojis = {"BULLISH": "ðŸ“ˆ", "BEARISH": "ðŸ“‰", "NEUTRAL": "âž¡ï¸"}
+        emoji  = emojis.get(resultado["agregado"], "âž¡ï¸")
+
+        lineas = [
+            f"Sentimiento agregado: {emoji} {resultado['agregado']}",
+            f"DistribuciÃ³n: {resultado['conteo']['BULLISH']} BULLISH Â· "
+            f"{resultado['conteo']['BEARISH']} BEARISH Â· "
+            f"{resultado['conteo']['NEUTRAL']} NEUTRAL",
+        ]
+
+        for r in resultado["resultados"]:
+            lineas.append(
+                f"  [{r['ticker']}] {r['clasificacion']} "
+                f"(confianza: {r['confianza']:.0%}) â€” {r['razonamiento']}"
+            )
+
+        return "\n".join(lineas)
+
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # FICHA TÃ‰CNICA
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def generar_ficha_tecnica(self, empresa: str, ticker: str) -> str:
+        """Ficha tÃ©cnica humanizada con noticias reales."""
+        noticias_ext = self._buscar_noticias_externas([ticker])
+        noticias_loc = self._noticias_locales([ticker])
+
+        noticias = ""
+        if noticias_ext:
+            noticias += noticias_ext + "\n"
+        if noticias_loc:
+            noticias += noticias_loc
+        if not noticias:
+            noticias = "Sin noticias recientes disponibles."
+
+        prompt = f"""
+Eres un analista financiero que conoce muy bien el mercado peruano.
+Escribe una ficha sobre {empresa} ({ticker}) como si se la explicaras 
+a alguien que quiere invertir por primera vez. Tono cercano y directo.
+
+Incluye:
+- QuÃ© hace esta empresa y por quÃ© importa en el PerÃº
+- En quÃ© sector opera y cÃ³mo le va a ese sector actualmente
+- Sus principales competidores o empresas relacionadas
+- QuÃ© dicen las noticias recientes: {noticias}
+- Si fueras a invertir en ella, Â¿quÃ© te darÃ­a confianza y quÃ© te preocuparÃ­a?
+
+MÃ¡ximo 200 palabras. Tono humano, no de informe corporativo.
+"""
+        return self._generar(prompt)
+
+-----------------------------------------
+ARCHIVO: fundamental_analysis.py
+TamaÃ±o: 5.73 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""fundamental_analysis.py â€” AnÃ¡lisis Fundamental
+EvalÃºa mÃ©tricas financieras fundamentales de empresas BVL."""
+
+import pandas as pd
+
+
+class FundamentalAnalysis:
+    """Motor de anÃ¡lisis fundamental."""
+    
+    # Datos financieros aproximados de empresas BVL (2024)
+    # Formato: {ticker: {metricas}}
+    DATOS_EMPRESAS = {
+        'ALICORC1.LM': {
+            'nombre': 'Alicorp',
+            'sector': 'Consumo',
+            'p_e': 12.5,
+            'roe': 15.2,
+            'deuda_capital': 0.45,
+            'flujo_caja': 850,  # millones
+            'crecimiento_ingresos': 8.5,
+            'margen_neto': 5.2,
+            'activos': 15000,
+            'salud_financiera': 'Buena'
+        },
+        'BBVAC1.LM': {
+            'nombre': 'BBVA PerÃº',
+            'sector': 'Financiero',
+            'p_e': 10.8,
+            'roe': 18.5,
+            'deuda_capital': 0.25,
+            'flujo_caja': 2100,
+            'crecimiento_ingresos': 6.2,
+            'margen_neto': 14.8,
+            'activos': 85000,
+            'salud_financiera': 'Excelente'
+        },
+        'CPACASC1.LM': {
+            'nombre': 'Cementos Pacasmayo',
+            'sector': 'ConstrucciÃ³n',
+            'p_e': 13.2,
+            'roe': 12.5,
+            'deuda_capital': 0.55,
+            'flujo_caja': 450,
+            'crecimiento_ingresos': 4.1,
+            'margen_neto': 8.5,
+            'activos': 8500,
+            'salud_financiera': 'Moderada'
+        },
+        'FERREYC1.LM': {
+            'nombre': 'Ferreycorp',
+            'sector': 'Retail',
+            'p_e': 14.5,
+            'roe': 16.8,
+            'deuda_capital': 0.35,
+            'flujo_caja': 650,
+            'crecimiento_ingresos': 9.5,
+            'margen_neto': 7.2,
+            'activos': 12000,
+            'salud_financiera': 'Buena'
+        },
+        'VOLCABC1.LM': {
+            'nombre': 'Volcan Minera',
+            'sector': 'MinerÃ­a',
+            'p_e': 9.8,
+            'roe': 22.5,
+            'deuda_capital': 0.60,
+            'flujo_caja': 1200,
+            'crecimiento_ingresos': 11.2,
+            'margen_neto': 12.5,
+            'activos': 18000,
+            'salud_financiera': 'Volatil'
+        },
+        'BAP': {
+            'nombre': 'Credicorp (BCP)',
+            'sector': 'Financiero',
+            'p_e': 11.2,
+            'roe': 19.8,
+            'deuda_capital': 0.20,
+            'flujo_caja': 3500,
+            'crecimiento_ingresos': 7.5,
+            'margen_neto': 16.2,
+            'activos': 150000,
+            'salud_financiera': 'Excelente'
+        },
+        'SCCO': {
+            'nombre': 'Southern Copper',
+            'sector': 'MinerÃ­a',
+            'p_e': 8.9,
+            'roe': 25.5,
+            'deuda_capital': 0.40,
+            'flujo_caja': 4200,
+            'crecimiento_ingresos': 13.5,
+            'margen_neto': 24.5,
+            'activos': 45000,
+            'salud_financiera': 'Excelente'
+        }
+    }
+    
+    def obtener_datos_empresa(self, ticker):
+        """Obtiene datos fundamentales de una empresa."""
+        return self.DATOS_EMPRESAS.get(ticker, {})
+    
+    def generar_score_fundamental(self, ticker):
+        """
+        Calcula score fundamental (0-100) basado en:
+        - P/E (lower is better, but not too low)
+        - ROE (return on equity)
+        - Deuda/Capital (lower is better)
+        - Crecimiento de ingresos
+        - Margen neto
+        """
+        datos = self.obtener_datos_empresa(ticker)
+        if not datos:
+            return 50  # neutral si no hay datos
+        
+        score = 50
+        
+        # P/E: rango ideal 10-15
+        pe = datos.get('p_e', 12)
+        if 10 <= pe <= 15:
+            score += 15
+        elif 8 <= pe < 10:
+            score += 10
+        elif 15 < pe <= 18:
+            score += 5
+        else:
+            score -= 5
+        
+        # ROE: >15% es bueno
+        roe = datos.get('roe', 15)
+        if roe >= 20:
+            score += 15
+        elif roe >= 15:
+            score += 10
+        elif roe >= 12:
+            score += 5
+        else:
+            score -= 5
+        
+        # Deuda/Capital: <0.5 es bueno
+        deuda = datos.get('deuda_capital', 0.5)
+        if deuda < 0.3:
+            score += 15
+        elif deuda < 0.5:
+            score += 10
+        elif deuda < 0.7:
+            score += 2
+        else:
+            score -= 10
+        
+        # Crecimiento ingresos: >5% es bueno
+        crecimiento = datos.get('crecimiento_ingresos', 5)
+        if crecimiento >= 10:
+            score += 10
+        elif crecimiento >= 7:
+            score += 8
+        elif crecimiento >= 5:
+            score += 5
+        else:
+            score -= 5
+        
+        # Margen neto: >10% es bueno
+        margen = datos.get('margen_neto', 8)
+        if margen >= 15:
+            score += 5
+        elif margen >= 10:
+            score += 3
+        elif margen >= 5:
+            score += 1
+        
+        return max(0, min(100, score))
+    
+    def analizar_salud_financiera(self, ticker):
+        """Retorna estado de salud financiera con justificaciÃ³n."""
+        datos = self.obtener_datos_empresa(ticker)
+        if not datos:
+            return {"salud": "Desconocida", "detalle": "Sin datos"}
+        
+        salud = datos.get('salud_financiera', 'Moderada')
+        roe = datos.get('roe', 15)
+        deuda = datos.get('deuda_capital', 0.5)
+        crecimiento = datos.get('crecimiento_ingresos', 5)
+        
+        detalle = f"ROE: {roe}% | Deuda/Cap: {deuda:.2f} | Crecimiento: {crecimiento}%"
+        
+        return {
+            "salud": salud,
+            "detalle": detalle,
+            "score": self.generar_score_fundamental(ticker)
+        }
+
+
+
+-----------------------------------------
+ARCHIVO: intelligent_agent.py
+TamaÃ±o: 5.79 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""intelligent_agent.py â€” Agente Inteligente Principal
+Orquesta todos los componentes: sensor, anÃ¡lisis tÃ©cnico, fundamental, sentimiento y recomendaciones."""
+
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from agents.market_sensor import MarketSensor
+from agents.clips_rules import ClipsRulesEngine
+from agents.expert_brain import ExpertBrain
+from agents.technical_analysis import TechnicalAnalysis
+from agents.fundamental_analysis import FundamentalAnalysis
+from agents.sentiment_analysis import SentimentAnalysis
+from agents.recommendations_engine import RecommendationsEngine
+
+
+class IntelligentAgent:
+    """Agente inteligente unificado para anÃ¡lisis de inversiones BVL."""
+    
+    def __init__(self):
+        self.sensor = MarketSensor()
+        self.clips = ClipsRulesEngine()
+        self.brain = ExpertBrain()
+        self.recommendations = RecommendationsEngine()
+    
+    def analizar_mercado(self, tickers=None, perfil="Moderado"):
+        """
+        AnÃ¡lisis completo del mercado:
+        1. PercepciÃ³n de precios (MarketSensor)
+        2. AnÃ¡lisis TÃ©cnico + Fundamental + Sentimiento
+        3. Motor de reglas CLIPS
+        4. Recomendaciones inteligentes
+        5. AnÃ¡lisis narrativo con Gemini
+        """
+        # 1. Obtener datos del mercado
+        lista_tickers = tickers or list(self.sensor.activos.keys())
+        df = self.sensor.percibir_mercado(lista_tickers)
+        
+        print(f"\n[OK] Datos obtenidos: {len(df)} activos")
+        print(df[["Empresa", "Precio", "Crecimiento_%"]].to_string(index=False))
+        
+        # 2. AnÃ¡lisis combinado (TÃ©cnico + Fundamental + Sentimiento)
+        print(f"\n[ANALISIS] Ejecutando anÃ¡lisis combinado...")
+        analisis_detallado = self.recommendations.generar_reporte_completo(
+            lista_tickers,
+            precios_actual={row['Ticker']: row['Precio'] for _, row in df.iterrows()},
+            precios_anterior=None
+        )
+        
+        # 3. Mostrar top 3 recomendaciones
+        print(f"\n[TOP 3] ACTIVOS POR SCORE:")
+        for i, reporte in enumerate(analisis_detallado['top_3'], 1):
+            print(f"\n   {i}. {reporte['ticker']}")
+            print(f"      Score: {reporte['score_final']}/100 | {reporte['recomendacion']}")
+            print(f"      Tecnico: {reporte['score_tecnico']} | Fundamental: {reporte['score_fundamental']} | Sentimiento: {reporte['score_sentimiento']}")
+        
+        # 4. Motor de reglas CLIPS
+        print(f"\n[CLIPS] Reglas activadas - Perfil: {perfil}")
+        reglas = self.clips.evaluar(df, perfil)
+        for r in reglas[:5]:  # mostrar top 5
+            print(f"   {r['icono']} {r['empresa']:25s} | {r['accion'][:50]}")
+        
+        # 5. AnÃ¡lisis IA (Gemini)
+        print(f"\n[IA] AnÃ¡lisis de IA (Gemini)...")
+        analisis_ia = self.brain.procesar_estrategia(df)
+        print(analisis_ia)
+        
+        return {
+            "datos": df,
+            "analisis_detallado": analisis_detallado,
+            "reglas_clips": reglas,
+            "analisis_ia": analisis_ia,
+            "perfil": perfil
+        }
+    
+    def recomendar_para_perfil(self, perfil="Moderado"):
+        """
+        Retorna recomendaciones personalizadas segÃºn perfil de riesgo.
+        """
+        df = self.sensor.percibir_mercado()
+        
+        # Filtrar segÃºn perfil
+        if perfil == "Conservador":
+            # Buscar activos con baja volatilidad y sector financiero
+            filtrados = df[df['Crecimiento_%'].abs() < 2].head(3)
+        elif perfil == "Moderado":
+            # Balance entre riesgo y retorno
+            filtrados = df[(df['Crecimiento_%'] >= -2) & (df['Crecimiento_%'] <= 5)].head(3)
+        elif perfil == "Agresivo":
+            # Alta volatilidad, potencial de crecimiento
+            filtrados = df[df['Crecimiento_%'] >= 1].head(3)
+        else:
+            filtrados = df.head(3)
+        
+        tickers = filtrados['Ticker'].tolist()
+        reporte = self.recommendations.generar_reporte_completo(tickers)
+        
+        return {
+            "perfil": perfil,
+            "recomendaciones": reporte['reportes'],
+            "resumen": f"{len(reporte['reportes'])} activos recomendados para perfil {perfil}"
+        }
+    
+    def obtener_explicacion(self, ticker):
+        """
+        Retorna explicaciÃ³n detallada de un activo especÃ­fico.
+        """
+        reporte = self.recommendations.evaluar_activo(ticker)
+        explicacion = self.recommendations.generar_explicacion(ticker, reporte)
+        return {
+            "ticker": ticker,
+            "reporte": reporte,
+            "explicacion": explicacion
+        }
+    
+    def comparar_activos(self, tickers):
+        """
+        Compara mÃºltiples activos lado a lado.
+        """
+        reporte = self.recommendations.generar_reporte_completo(tickers)
+        
+        # Tabla comparativa
+        tabla = []
+        for r in reporte['reportes']:
+            tabla.append({
+                'Ticker': r['ticker'],
+                'Score': r['score_final'],
+                'TÃ©cnico': r['score_tecnico'],
+                'Fund.': r['score_fundamental'],
+                'Sent.': r['score_sentimiento'],
+                'Rec.': r['recomendacion']
+            })
+        
+        return {
+            "comparacion": tabla,
+            "mejor": reporte['reportes'][0] if reporte['reportes'] else None,
+            "peor": reporte['reportes'][-1] if reporte['reportes'] else None
+        }
+
+
+if __name__ == "__main__":
+    agente = IntelligentAgent()
+    
+    # AnÃ¡lisis completo
+    print("\n[INICIO] AGENTE INTELIGENTE DE INVERSIONES BVL")
+    print("=" * 60)
+    resultado = agente.analizar_mercado(perfil="Moderado")
+    
+    print("\nâœ” AnÃ¡lisis completado.")
+
+
+-----------------------------------------
+ARCHIVO: market_sensor.py
+TamaÃ±o: 3.83 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+import yfinance as yf
+import pandas as pd
+import logging
+import os
+
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+
+class MarketSensor:
+    def __init__(self):
+        self.activos = {
+            'ALICORC1.LM': 'Alicorp',
+            'BBVAC1.LM':   'BBVA PerÃº',
+            'CPACASC1.LM': 'Cementos Pacasmayo',
+            'FERREYC1.LM': 'Ferreycorp',
+            'VOLCABC1.LM': 'Volcan Minera',
+            'BAP':         'Credicorp (BCP)',
+            'SCCO':        'Southern Copper'
+        }
+        # Precios de respaldo realistas BVL 2024
+        self._respaldo = {
+            'ALICORC1.LM': (8.45,   1.20),
+            'BBVAC1.LM':   (5.30,  -0.75),
+            'CPACASC1.LM': (4.80,   0.42),
+            'FERREYC1.LM': (2.95,   2.10),
+            'VOLCABC1.LM': (0.48,  -1.50),
+            'BAP':         (185.20, 0.85),
+            'SCCO':        (98.60,  1.35),
+        }
+
+    def _precio_yfinance(self, ticker):
+        try:
+            df = yf.download(ticker, period="5d", interval="1d",
+                             progress=False, auto_adjust=True, timeout=8)
+            if df is None or df.empty:
+                return None
+            # Aplanar MultiIndex si existe
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            col = next((c for c in df.columns if 'close' in str(c).lower()), None)
+            if col is None:
+                return None
+            serie = df[col].dropna()
+            if len(serie) < 1:
+                return None
+            actual = float(serie.iloc[-1])
+            cambio = 0.0
+            if len(serie) >= 2:
+                ant = float(serie.iloc[-2])
+                if ant > 0:
+                    cambio = ((actual - ant) / ant) * 100
+            return round(actual, 2), round(cambio, 2)
+        except:
+            return None
+
+    def percibir_mercado(self, lista_tickers=None):
+        tickers = lista_tickers or list(self.activos.keys())
+        datos = []
+
+        for ticker in tickers:
+            nombre = self.activos.get(ticker, ticker)
+            resultado = self._precio_yfinance(ticker)
+
+            if resultado:
+                precio, cambio = resultado
+                sector = "BVL Real-Time"
+            else:
+                precio, cambio = self._respaldo.get(ticker, (10.0, 0.0))
+                sector = "Demo"
+
+            datos.append({
+                "Empresa":       nombre,
+                "Ticker":        ticker,
+                "Precio":        precio,
+                "Crecimiento_%": cambio,
+                "Sector":        sector
+            })
+
+        # GARANTÃA: nunca retorna vacÃ­o
+        if not datos:
+            for ticker in tickers:
+                p, c = self._respaldo.get(ticker, (10.0, 0.0))
+                datos.append({
+                    "Empresa": self.activos.get(ticker, ticker),
+                    "Ticker": ticker, "Precio": p,
+                    "Crecimiento_%": c, "Sector": "Demo"
+                })
+
+        return pd.DataFrame(datos)
+
+    def exportar_hechos_lisp(self, df):
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        ruta_dir = os.path.join(base, 'data')
+        os.makedirs(ruta_dir, exist_ok=True)
+        ruta = os.path.join(ruta_dir, 'hechos_mercado.lisp')
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write("(setq hechos-mercado '(\n")
+            for _, fila in df.iterrows():
+                f.write(f'  ("{fila["Empresa"]}" {fila["Precio"]} {fila["Crecimiento_%"]} "{fila["Sector"]}")\n')
+            f.write("))\n")
+        print(f"Hechos exportados: {ruta}")
+
+if __name__ == "__main__":
+    s = MarketSensor()
+    df = s.percibir_mercado()
+    print(df[['Empresa','Precio','Crecimiento_%','Sector']].to_string(index=False))
+
+-----------------------------------------
+ARCHIVO: news_analyzer.py
+TamaÃ±o: 10.16 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""news_analyzer.py â€” AnÃ¡lisis Avanzado de Noticias
+Captura noticias recientes, detecta relaciones entre empresas y genera contexto."""
+
+from datetime import datetime, timedelta
+
+
+class NewsAnalyzer:
+    """Motor avanzado de anÃ¡lisis de noticias con relaciones."""
+    
+    # Base de datos de noticias actualizada (simulaciÃ³n)
+    NOTICIAS_DETALLADAS = {
+        'ALICORC1.LM': [
+            {
+                'titulo': 'Alicorp reporta incremento de ventas en Q1 2024',
+                'resumen': 'La empresa incremento sus ventas un 8.5% impulsada por expansion en lineas de consumo.',
+                'fecha': 2,
+                'sentimiento': 0.75,
+                'fuente': 'Bloomberg Peru',
+                'relacionadas': ['FERREYC1.LM', 'BBVAC1.LM'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Nuevas plantas de produccion aceleran crecimiento',
+                'resumen': 'Alicorp abre dos nuevas plantas en provincias para llegar a mas ciudades.',
+                'fecha': 5,
+                'sentimiento': 0.70,
+                'fuente': 'Gestion',
+                'relacionadas': ['CPACASC1.LM'],
+                'impacto': 'medio'
+            },
+            {
+                'titulo': 'Competencia presiona margenes pero Alicorp mantiene posicion',
+                'resumen': 'A pesar de importaciones, Alicorp logra mantener cuota de mercado.',
+                'fecha': 12,
+                'sentimiento': -0.30,
+                'fuente': 'Economia.pe',
+                'relacionadas': ['FERREYC1.LM'],
+                'impacto': 'bajo'
+            }
+        ],
+        'BBVAC1.LM': [
+            {
+                'titulo': 'BBVA Peru lidera crecimiento del sector bancario',
+                'resumen': 'BBVA registra mayor crecimiento que competidores en colocaciones.',
+                'fecha': 1,
+                'sentimiento': 0.85,
+                'fuente': 'SBS (Superintendencia)',
+                'relacionadas': ['BAP', 'ALICORC1.LM'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Tasa de interes beneficia a bancos peruanos',
+                'resumen': 'Subidas de tasas amplian margenes de intermediacion.',
+                'fecha': 4,
+                'sentimiento': 0.75,
+                'fuente': 'BCR (Banco Central)',
+                'relacionadas': ['BAP'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'BBVA expande servicios digitales y fintech',
+                'resumen': 'Lanzamiento de nuevas plataformas digitales atrae mas clientes jovenes.',
+                'fecha': 8,
+                'sentimiento': 0.70,
+                'fuente': 'TechCrunch Peru',
+                'relacionadas': [],
+                'impacto': 'medio'
+            }
+        ],
+        'FERREYC1.LM': [
+            {
+                'titulo': 'Consumo de ferreteria se reactiva en 2024',
+                'resumen': 'Proyectos inmobiliarios reactivados impulsan demanda de materiales.',
+                'fecha': 3,
+                'sentimiento': 0.68,
+                'fuente': 'Capeco',
+                'relacionadas': ['CPACASC1.LM', 'BAP'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Ferreycorp abre nuevas tiendas en Lima Metropolitana',
+                'resumen': 'Expansion agresiva de sucursales en zonas de alto crecimiento.',
+                'fecha': 6,
+                'sentimiento': 0.72,
+                'fuente': 'Gestion',
+                'relacionadas': ['ALICORC1.LM'],
+                'impacto': 'medio'
+            }
+        ],
+        'VOLCABC1.LM': [
+            {
+                'titulo': 'Precios del zinc y cobre al alza en mercados internacionales',
+                'resumen': 'Commodities suben por recuperacion economica global.',
+                'fecha': 2,
+                'sentimiento': 0.85,
+                'fuente': 'London Metal Exchange',
+                'relacionadas': ['SCCO'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Volcan Minera aumenta produccion en respuesta a precios altos',
+                'resumen': 'Productora de zinc anuncia incremento de output en 15%.',
+                'fecha': 5,
+                'sentimiento': 0.80,
+                'fuente': 'Mining.com',
+                'relacionadas': ['SCCO'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Demandas ambientales ralentizan expansion de Volcan',
+                'resumen': 'Grupos ambientalistas se oponen a nuevo proyecto minero.',
+                'fecha': 10,
+                'sentimiento': -0.65,
+                'fuente': 'Ecologia.pe',
+                'relacionadas': [],
+                'impacto': 'medio'
+            }
+        ],
+        'CPACASC1.LM': [
+            {
+                'titulo': 'Construccion se reactiva tras reduccion de tasas',
+                'resumen': 'Sector inmobiliario muestra senales de recuperacion.',
+                'fecha': 4,
+                'sentimiento': 0.65,
+                'fuente': 'INEI',
+                'relacionadas': ['FERREYC1.LM', 'BAP'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Cementos Pacasmayo moderniza plantas de produccion',
+                'resumen': 'Inversion en tecnologia verde reduce costos y emisiones.',
+                'fecha': 7,
+                'sentimiento': 0.60,
+                'fuente': 'Construccion.pe',
+                'relacionadas': ['ALICORC1.LM'],
+                'impacto': 'medio'
+            }
+        ],
+        'SCCO': [
+            {
+                'titulo': 'Southern Copper obtiene record historico de ganancias',
+                'resumen': 'Empresa minera reporta sus mejores resultados en 10 anos.',
+                'fecha': 1,
+                'sentimiento': 0.90,
+                'fuente': 'Reuters',
+                'relacionadas': ['VOLCABC1.LM'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Demanda global de cobre se fortalece por transicion energetica',
+                'resumen': 'Energias renovables incrementan demanda de cobre para infraestructura.',
+                'fecha': 3,
+                'sentimiento': 0.85,
+                'fuente': 'IEA',
+                'relacionadas': ['VOLCABC1.LM'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Conflicto laboral afecta produccion de Southern Copper',
+                'resumen': 'Huelga de empleados interrumpe operaciones por 3 semanas.',
+                'fecha': 9,
+                'sentimiento': -0.70,
+                'fuente': 'Bloomberg',
+                'relacionadas': [],
+                'impacto': 'alto'
+            }
+        ],
+        'BAP': [
+            {
+                'titulo': 'Credicorp (BCP) lidera sector financiero peruano',
+                'resumen': 'Mayor institucion financiera muestra solidez en resultados.',
+                'fecha': 1,
+                'sentimiento': 0.80,
+                'fuente': 'BCRP',
+                'relacionadas': ['BBVAC1.LM'],
+                'impacto': 'alto'
+            },
+            {
+                'titulo': 'Confianza del consumidor en alza favorece creditos de BCP',
+                'resumen': 'Colocaciones de credito crecen 9% en primeros meses del ano.',
+                'fecha': 5,
+                'sentimiento': 0.75,
+                'fuente': 'BCRP',
+                'relacionadas': ['ALICORC1.LM', 'FERREYC1.LM'],
+                'impacto': 'alto'
+            }
+        ]
+    }
+    
+    def obtener_noticias_recientes(self, ticker, dias=30):
+        """Obtiene noticias recientes de un ticker."""
+        noticias = self.NOTICIAS_DETALLADAS.get(ticker, [])
+        return [n for n in noticias if n['fecha'] <= dias]
+    
+    def obtener_noticias_relacionadas(self, ticker):
+        """Obtiene noticias de empresas relacionadas."""
+        noticias_propias = self.obtener_noticias_recientes(ticker)
+        relacionadas = set()
+        
+        for noticia in noticias_propias:
+            relacionadas.update(noticia.get('relacionadas', []))
+        
+        return list(relacionadas)
+    
+    def analizar_tendencia(self, ticker):
+        """Analiza la tendencia general de las noticias."""
+        noticias = self.obtener_noticias_recientes(ticker)
+        if not noticias:
+            return {"tendencia": "neutra", "score": 0.0}
+        
+        score_promedio = sum(n['sentimiento'] for n in noticias) / len(noticias)
+        
+        if score_promedio >= 0.6:
+            tendencia = "muy positiva"
+        elif score_promedio >= 0.3:
+            tendencia = "positiva"
+        elif score_promedio >= -0.3:
+            tendencia = "neutral"
+        elif score_promedio >= -0.6:
+            tendencia = "negativa"
+        else:
+            tendencia = "muy negativa"
+        
+        return {"tendencia": tendencia, "score": round(score_promedio, 2)}
+    
+    def generar_resumen_noticias(self, ticker):
+        """Genera resumen narrativo de noticias."""
+        noticias = self.obtener_noticias_recientes(ticker, dias=15)  # ultimas 2 semanas
+        if not noticias:
+            return "No hay noticias recientes disponibles."
+        
+        noticias_top = sorted(noticias, key=lambda x: x['fecha'])[:3]
+        
+        resumen = "Noticias recientes:\n"
+        for noticia in noticias_top:
+            resumen += f"\n- {noticia['titulo']}\n  {noticia['resumen']}\n"
+        
+        return resumen
+    
+    def detectar_catalistas(self, ticker):
+        """Detecta eventos catalizadores positivos y negativos."""
+        noticias = self.obtener_noticias_recientes(ticker)
+        
+        positivos = [n for n in noticias if n['sentimiento'] > 0.5 and n['impacto'] in ['alto', 'medio']]
+        negativos = [n for n in noticias if n['sentimiento'] < -0.5 and n['impacto'] in ['alto', 'medio']]
+        
+        return {
+            "catalistas_positivos": positivos,
+            "catalistas_negativos": negativos,
+            "balance": len(positivos) - len(negativos)
+        }
+
+
+-----------------------------------------
+ARCHIVO: prediction_engine.py
+TamaÃ±o: 5.43 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""prediction_engine.py â€” Motor de Predicciones
+Predice tendencias futuras basadas en anÃ¡lisis histÃ³ricos y noticias."""
+
+import random
+
+
+class PredictionEngine:
+    """Motor de predicciones para tendencias de precios."""
+    
+    def predecir_corto_plazo(self, ticker, score_actual, catalistas):
+        """Predice tendencia a corto plazo (1-4 semanas)."""
+        # Base: score actual (40% del peso)
+        prediccion_base = score_actual
+        
+        # Catalistas: afectan predicciÃ³n (60% del peso)
+        balance_catalistas = catalistas.get('balance', 0)
+        
+        # Calcular predicciÃ³n
+        prediccion = (prediccion_base * 0.4) + (balance_catalistas * 10 + 50) * 0.6
+        prediccion = max(0, min(100, prediccion))  # Clamp 0-100
+        
+        # Determinar direcciÃ³n
+        if prediccion >= 65:
+            direccion = "ALISTA"
+        elif prediccion >= 50:
+            direccion = "ESTABLE AL ALZA"
+        elif prediccion >= 35:
+            direccion = "ESTABLE A LA BAJA"
+        else:
+            direccion = "BAJISTA"
+        
+        return {
+            "periodo": "4 semanas",
+            "prediccion_score": round(prediccion, 1),
+            "direccion": direccion,
+            "confianza": self._calcular_confianza(score_actual, balance_catalistas)
+        }
+    
+    def predecir_mediano_plazo(self, ticker, score_fundamental, crecimiento_sector):
+        """Predice tendencia a mediano plazo (3-6 meses)."""
+        # Factor fundamental es mÃ¡s importante a mediano plazo
+        prediccion = score_fundamental * 0.7 + (crecimiento_sector + 50) * 0.3
+        prediccion = max(0, min(100, prediccion))
+        
+        if prediccion >= 70:
+            direccion = "FUERTE AL ALZA"
+        elif prediccion >= 55:
+            direccion = "AL ALZA"
+        elif prediccion >= 45:
+            direccion = "NEUTRAL"
+        elif prediccion >= 30:
+            direccion = "A LA BAJA"
+        else:
+            direccion = "FUERTE A LA BAJA"
+        
+        return {
+            "periodo": "3-6 meses",
+            "prediccion_score": round(prediccion, 1),
+            "direccion": direccion,
+            "confianza": "Media a Alta"
+        }
+    
+    def predecir_largo_plazo(self, ticker, score_fundamental, sector_outlook):
+        """Predice tendencia a largo plazo (1+ anos)."""
+        # A largo plazo, fundamentales son clave
+        prediccion = score_fundamental * 0.8 + sector_outlook * 0.2
+        prediccion = max(0, min(100, prediccion))
+        
+        if prediccion >= 75:
+            potencial = "MUY ALTO"
+            outlook = "InversiÃ³n recomendada a largo plazo"
+        elif prediccion >= 60:
+            potencial = "ALTO"
+            outlook = "Buen potencial de crecimiento"
+        elif prediccion >= 50:
+            potencial = "MODERADO"
+            outlook = "Crecimiento en lÃ­nea con el mercado"
+        elif prediccion >= 35:
+            potencial = "BAJO"
+            outlook = "Crecimiento limitado"
+        else:
+            potencial = "MUY BAJO"
+            outlook = "PresiÃ³n bajista sostenida"
+        
+        return {
+            "periodo": "1 ano o mas",
+            "potencial": potencial,
+            "outlook": outlook,
+            "prediccion_score": round(prediccion, 1)
+        }
+    
+    def generar_escenarios(self, ticker, precio_actual, score_fundamental, volatilidad=0.1):
+        """Genera 3 escenarios: bajista, base, alcista."""
+        
+        # Escenario bajista (20% probabilidad)
+        precio_bajista = precio_actual * (1 - volatilidad * 2)
+        cambio_bajista = ((precio_bajista - precio_actual) / precio_actual) * 100
+        
+        # Escenario base (60% probabilidad)
+        precio_base = precio_actual * (1 + (score_fundamental - 50) / 100 * 0.1)
+        cambio_base = ((precio_base - precio_actual) / precio_actual) * 100
+        
+        # Escenario alcista (20% probabilidad)
+        precio_alcista = precio_actual * (1 + volatilidad * 2)
+        cambio_alcista = ((precio_alcista - precio_actual) / precio_actual) * 100
+        
+        return {
+            "escenario_bajista": {
+                "precio_esperado": round(precio_bajista, 2),
+                "cambio_porcentaje": round(cambio_bajista, 2),
+                "probabilidad": "20%",
+                "razon": "Deterioro de fundamentales o noticias negativas inesperadas"
+            },
+            "escenario_base": {
+                "precio_esperado": round(precio_base, 2),
+                "cambio_porcentaje": round(cambio_base, 2),
+                "probabilidad": "60%",
+                "razon": "EjecuciÃ³n en lÃ­nea con expectativas"
+            },
+            "escenario_alcista": {
+                "precio_esperado": round(precio_alcista, 2),
+                "cambio_porcentaje": round(cambio_alcista, 2),
+                "probabilidad": "20%",
+                "razon": "Sorpresas positivas o catalizadores inesperados"
+            }
+        }
+    
+    def _calcular_confianza(self, score_actual, balance_catalistas):
+        """Calcula nivel de confianza en la predicciÃ³n."""
+        # Alta confianza si score es claro y catalistas respaldan
+        if (score_actual >= 70 and balance_catalistas > 0) or (score_actual <= 30 and balance_catalistas < 0):
+            return "Alta"
+        elif 40 <= score_actual <= 60 and abs(balance_catalistas) <= 1:
+            return "Baja (zona neutral)"
+        else:
+            return "Media"
+
+
+-----------------------------------------
+ARCHIVO: reasoning.py
+TamaÃ±o: 1.71 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""reasoning.py â€” Orquestador del Agente Inteligente
+Coordina MarketSensor + ClipsRulesEngine + ExpertBrain"""
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from agents.market_sensor import MarketSensor
+from agents.clips_rules import ClipsRulesEngine
+from agents.expert_brain import ExpertBrain
+
+def ejecutar_analisis(perfil: str = "Moderado", tickers: list = None):
+    """
+    Pipeline completo del agente:
+    1. PercepciÃ³n â†’ MarketSensor descarga precios reales
+    2. ExportaciÃ³n â†’ genera hechos_mercado.lisp
+    3. Reglas CLIPS â†’ evalÃºa seÃ±ales segÃºn perfil
+    4. IA â†’ ExpertBrain genera anÃ¡lisis narrativo
+    """
+    sensor = MarketSensor()
+    clips  = ClipsRulesEngine()
+    brain  = ExpertBrain()
+
+    # 1. PercepciÃ³n
+    df = sensor.percibir_mercado(tickers)
+    print(f"\n ðŸ“Š Datos obtenidos: {len(df)} activos")
+    print(df[["Empresa", "Precio", "Crecimiento_%", "Sector"]].to_string(index=False))
+
+    # 2. Exportar hechos para CLISP externo
+    sensor.exportar_hechos_lisp(df)
+    clips.exportar_lisp(df, perfil)
+
+    # 3. Reglas CLIPS
+    print(f"\n ðŸ“‹ Reglas activadas â€” Perfil: {perfil}")
+    reglas = clips.evaluar(df, perfil)
+    for r in reglas:
+        print(f"  {r['icono']}  {r['empresa']:25s} | {r['regla']:35s} â†’ {r['accion']}")
+
+    # 4. AnÃ¡lisis IA
+    print("\n ðŸ“ˆAnÃ¡lisis ExpertBrain (Gemini):")
+    analisis = brain.procesar_estrategia(df)
+    print(analisis)
+
+    return {
+        "df": df,
+        "reglas": reglas,
+        "analisis_ia": analisis,
+    }
+
+
+if __name__ == "__main__":
+    resultado = ejecutar_analisis(perfil="Moderado")
+    print("\nâœ” Pipeline completado.")
+
+-----------------------------------------
+ARCHIVO: recommendations_engine.py
+TamaÃ±o: 6.06 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""recommendations_engine.py â€” Motor de Recomendaciones Inteligente
+Combina anÃ¡lisis tÃ©cnico, fundamental y de sentimiento para generar recomendaciones."""
+
+from agents.technical_analysis import TechnicalAnalysis
+from agents.fundamental_analysis import FundamentalAnalysis
+from agents.sentiment_analysis import SentimentAnalysis
+
+
+class RecommendationsEngine:
+    """Motor de recomendaciones que combina 3 anÃ¡lisis."""
+    
+    def __init__(self):
+        self.tecnico = TechnicalAnalysis()
+        self.fundamental = FundamentalAnalysis()
+        self.sentimiento = SentimentAnalysis()
+    
+    # Pesos para combinar anÃ¡lisis (pueden ajustarse)
+    PESOS = {
+        'tecnico': 0.35,
+        'fundamental': 0.40,
+        'sentimiento': 0.25
+    }
+    
+    def evaluar_activo(self, ticker, precio_actual=None, precio_anterior=None):
+        """
+        EvaluaciÃ³n completa de un activo combinando los 3 anÃ¡lisis.
+        Retorna un diccionario con scores y recomendaciÃ³n.
+        """
+        # AnÃ¡lisis TÃ©cnico
+        if precio_actual and precio_anterior:
+            score_tecnico = self.tecnico.generar_score_tecnico(precio_actual, precio_anterior)
+        else:
+            score_tecnico = 50
+        
+        # AnÃ¡lisis Fundamental
+        score_fundamental = self.fundamental.generar_score_fundamental(ticker)
+        
+        # AnÃ¡lisis de Sentimiento
+        score_sentimiento = self.sentimiento.generar_score_sentimiento(ticker)
+        
+        # Score final ponderado
+        score_final = (
+            score_tecnico * self.PESOS['tecnico'] +
+            score_fundamental * self.PESOS['fundamental'] +
+            score_sentimiento * self.PESOS['sentimiento']
+        )
+        
+        # Generar recomendaciÃ³n basada en score
+        recomendacion = self._generar_recomendacion(score_final)
+        
+        return {
+            'ticker': ticker,
+            'score_tecnico': round(score_tecnico, 1),
+            'score_fundamental': round(score_fundamental, 1),
+            'score_sentimiento': round(score_sentimiento, 1),
+            'score_final': round(score_final, 1),
+            'recomendacion': recomendacion,
+            'confianza': self._calcular_confianza(score_final),
+            'detalles': {
+                'tecnico': self.tecnico.generar_score_tecnico(precio_actual or 0, precio_anterior or 0),
+                'fundamental': self.fundamental.analizar_salud_financiera(ticker),
+                'sentimiento': self.sentimiento.analizar_sentimiento_detallado(ticker)
+            }
+        }
+    
+    def _generar_recomendacion(self, score_final):
+        """Genera recomendaciÃ³n basada en score (0-100)."""
+        if score_final >= 85:
+            return "FUERTE COMPRA"
+        elif score_final >= 70:
+            return "COMPRA"
+        elif score_final >= 55:
+            return "MANTENER"
+        elif score_final >= 40:
+            return "VENTA"
+        else:
+            return "FUERTE VENTA"
+    
+    def _calcular_confianza(self, score_final):
+        """Calcula nivel de confianza en la recomendaciÃ³n."""
+        if 40 <= score_final <= 60:
+            return "Baja "  # zona neutral, menos confianza
+        elif score_final < 40 or score_final > 85:
+            return "Alta "  # extremos, mayor confianza
+        else:
+            return "Media "  # medio, confianza media
+    
+    def generar_reporte_completo(self, lista_tickers, precios_actual=None, precios_anterior=None):
+        """
+        Genera reporte completo evaluando mÃºltiples activos.
+        """
+        reportes = []
+        
+        for ticker in lista_tickers:
+            precio_act = precios_actual.get(ticker) if precios_actual else None
+            precio_ant = precios_anterior.get(ticker) if precios_anterior else None
+            
+            reporte = self.evaluar_activo(ticker, precio_act, precio_ant)
+            reportes.append(reporte)
+        
+        # Ordenar por score final (mayor primero)
+        reportes.sort(key=lambda x: x['score_final'], reverse=True)
+        
+        return {
+            'activos_evaluados': len(reportes),
+            'reportes': reportes,
+            'top_3': reportes[:3],
+            'timestamp': self._get_timestamp()
+        }
+    
+    def generar_explicacion(self, ticker, reporte):
+        """
+        Genera una explicaciÃ³n legible del anÃ¡lisis.
+        """
+        rec = reporte['recomendacion']
+        score = reporte['score_final']
+        conf = reporte['confianza']
+        
+        # Detalles
+        fund = reporte['detalles']['fundamental']
+        sent = reporte['detalles']['sentimiento']
+        
+        explicacion = f"""
+ANÃLISIS COMPLETO: {ticker}
+{'='*50}
+
+RECOMENDACIÃ“N: {rec}
+   Score Final: {score}/100 | Confianza: {conf}
+
+SCORES COMPONENTES:
+   â€¢ TÃ©cnico:      {reporte['score_tecnico']}/100
+   â€¢ Fundamental:  {reporte['score_fundamental']}/100
+   â€¢ Sentimiento:  {reporte['score_sentimiento']}/100
+
+ANÃLISIS FUNDAMENTAL:
+   Salud: {fund['salud']}
+   {fund['detalle']}
+
+ANÃLISIS DE SENTIMIENTO:
+   {sent['sentimiento']}
+   Noticias positivas: {sent['positivas']}
+   Noticias negativas: {sent['negativas']}
+
+CONCLUSIÃ“N:
+   {self._generar_conclusion(score)}
+"""
+        return explicacion
+    
+    def _generar_conclusion(self, score):
+        """Genera texto de conclusiÃ³n basado en el score."""
+        if score >= 85:
+            return "Excelentes seÃ±ales de compra. Altamente recomendado para inversiÃ³n."
+        elif score >= 70:
+            return "SeÃ±ales positivas. Buen candidato para inversiÃ³n."
+        elif score >= 55:
+            return "PosiciÃ³n neutral. Esperar confirmaciÃ³n o mejor momento."
+        elif score >= 40:
+            return "SeÃ±ales negativas. Considerar reducir posiciÃ³n o esperar."
+        else:
+            return "SeÃ±ales muy negativas. No recomendado para inversiÃ³n en este momento."
+    
+    @staticmethod
+    def _get_timestamp():
+        """Retorna timestamp actual."""
+        from datetime import datetime
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+-----------------------------------------
+ARCHIVO: sentiment_analysis.py
+TamaÃ±o: 5.71 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""sentiment_analysis.py â€” AnÃ¡lisis de Sentimiento
+EvalÃºa sentimiento de noticias y tendencias sociales."""
+
+import random
+from datetime import datetime, timedelta
+
+
+class SentimentAnalysis:
+    """Motor de anÃ¡lisis de sentimiento para mercado BVL."""
+    
+    # SimulaciÃ³n de noticias recientes por ticker
+    NOTICIAS_DB = {
+        'ALICORC1.LM': [
+            {'titulo': 'Alicorp reporta resultados positivos Q1 2024', 'sentimiento': 0.75, 'fecha': -5},
+            {'titulo': 'ExpansiÃ³n de plantas en PerÃº genera optimismo', 'sentimiento': 0.65, 'fecha': -8},
+            {'titulo': 'Competencia del sector presiona mÃ¡rgenes', 'sentimiento': -0.45, 'fecha': -15},
+        ],
+        'BBVAC1.LM': [
+            {'titulo': 'BBVA PerÃº supera estimaciones de ganancias', 'sentimiento': 0.80, 'fecha': -3},
+            {'titulo': 'Tasas de interÃ©s favorecen a bancos', 'sentimiento': 0.70, 'fecha': -7},
+            {'titulo': 'RegulaciÃ³n bancaria mÃ¡s rigurosa se aproxima', 'sentimiento': -0.30, 'fecha': -12},
+        ],
+        'CPACASC1.LM': [
+            {'titulo': 'ConstrucciÃ³n de vivienda se desacelera', 'sentimiento': -0.55, 'fecha': -4},
+            {'titulo': 'Nuevos proyectos de infraestructura en PerÃº', 'sentimiento': 0.60, 'fecha': -10},
+            {'titulo': 'Cementos Pacasmayo moderniza capacidades', 'sentimiento': 0.50, 'fecha': -14},
+        ],
+        'FERREYC1.LM': [
+            {'titulo': 'Ferreycorp abre nuevas sucursales', 'sentimiento': 0.70, 'fecha': -2},
+            {'titulo': 'Consumo de ferreterÃ­a en alza durante 2024', 'sentimiento': 0.65, 'fecha': -6},
+            {'titulo': 'Competencia de retail online afecta ventas', 'sentimiento': -0.40, 'fecha': -18},
+        ],
+        'VOLCABC1.LM': [
+            {'titulo': 'Precios de cobre al alza mejoran perspectivas', 'sentimiento': 0.85, 'fecha': -2},
+            {'titulo': 'Volcan aumenta producciÃ³n de zinc', 'sentimiento': 0.75, 'fecha': -6},
+            {'titulo': 'RegulaciÃ³n ambiental mÃ¡s estricta en minerÃ­a', 'sentimiento': -0.60, 'fecha': -9},
+        ],
+        'BAP': [
+            {'titulo': 'Credicorp reporta sÃ³lido desempeÃ±o en 2024', 'sentimiento': 0.80, 'fecha': -1},
+            {'titulo': 'Confianza del consumidor favorece operaciones', 'sentimiento': 0.70, 'fecha': -5},
+            {'titulo': 'Ciberataques requieren mayor inversiÃ³n en seguridad', 'sentimiento': -0.25, 'fecha': -16},
+        ],
+        'SCCO': [
+            {'titulo': 'Southern Copper genera mÃ¡ximos histÃ³ricos de ganancia', 'sentimiento': 0.90, 'fecha': -1},
+            {'titulo': 'Demanda global de cobre se fortalece', 'sentimiento': 0.85, 'fecha': -4},
+            {'titulo': 'Huelga de empleados afecta producciÃ³n', 'sentimiento': -0.70, 'fecha': -11},
+        ]
+    }
+    
+    def obtener_noticias_recientes(self, ticker, dias=30):
+        """Obtiene noticias de los Ãºltimos N dÃ­as para un ticker."""
+        noticias = self.NOTICIAS_DB.get(ticker, [])
+        return [n for n in noticias if abs(n['fecha']) <= dias]
+    
+    def generar_score_sentimiento(self, ticker, ventana_dias=30):
+        """
+        Calcula score de sentimiento (0-100) basado en:
+        - Promedio ponderado de sentimientos recientes (mÃ¡s reciente = mÃ¡s peso)
+        - NÃºmero de noticias positivas vs negativas
+        """
+        noticias = self.obtener_noticias_recientes(ticker, ventana_dias)
+        
+        if not noticias:
+            return 50  # neutral si no hay noticias
+        
+        # Peso exponencial: mÃ¡s reciente = mÃ¡s peso
+        sentimientos_ponderados = []
+        for noticia in noticias:
+            dias_atras = abs(noticia['fecha'])
+            peso = 1.0 / (1 + (dias_atras / 5))  # exponential decay
+            sentimiento_norm = (noticia['sentimiento'] + 1) / 2 * 100  # escala 0-100
+            sentimientos_ponderados.append(sentimiento_norm * peso)
+        
+        total_peso = sum([1.0 / (1 + (abs(n['fecha']) / 5)) for n in noticias])
+        score_promedio = sum(sentimientos_ponderados) / total_peso if total_peso > 0 else 50
+        
+        # Ajuste por cantidad de noticias positivas
+        positivas = sum(1 for n in noticias if n['sentimiento'] > 0)
+        ratio = positivas / len(noticias) if noticias else 0.5
+        
+        if ratio > 0.7:
+            score_promedio = min(100, score_promedio + 10)
+        elif ratio < 0.3:
+            score_promedio = max(0, score_promedio - 10)
+        
+        return max(0, min(100, score_promedio))
+    
+    def analizar_sentimiento_detallado(self, ticker):
+        """AnÃ¡lisis detallado de sentimiento con noticias."""
+        noticias = self.obtener_noticias_recientes(ticker, 30)
+        score = self.generar_score_sentimiento(ticker)
+        
+        # Clasificar sentimiento
+        if score >= 70:
+            sentimiento_general = "Muy Positivo ðŸ˜Š"
+        elif score >= 55:
+            sentimiento_general = "Positivo ðŸ“ˆ"
+        elif score >= 45:
+            sentimiento_general = "Neutral âž¡ï¸"
+        elif score >= 30:
+            sentimiento_general = "Negativo ðŸ“‰"
+        else:
+            sentimiento_general = "Muy Negativo ðŸ˜Ÿ"
+        
+        resumen_noticias = []
+        for noticia in noticias[:3]:  # Top 3 mÃ¡s recientes
+            icono = "âœ…" if noticia['sentimiento'] > 0 else "âŒ"
+            resumen_noticias.append(f"{icono} {noticia['titulo']}")
+        
+        return {
+            "score": score,
+            "sentimiento": sentimiento_general,
+            "noticias_count": len(noticias),
+            "noticias_top": resumen_noticias,
+            "positivas": sum(1 for n in noticias if n['sentimiento'] > 0),
+            "negativas": sum(1 for n in noticias if n['sentimiento'] < 0)
+        }
+
+
+-----------------------------------------
+ARCHIVO: technical_analysis.py
+TamaÃ±o: 3.26 KB
+Ãšltima modificaciÃ³n: 07/02/2026 15:02:18
+-----------------------------------------
+"""technical_analysis.py â€” AnÃ¡lisis TÃ©cnico
+Calcula indicadores tÃ©cnicos e identifica patrones."""
+
+import pandas as pd
+import numpy as np
+
+
+class TechnicalAnalysis:
+    """Motor de anÃ¡lisis tÃ©cnico con indicadores estÃ¡ndar."""
+    
+    def __init__(self, periodo_short=12, periodo_long=26, periodo_signal=9):
+        self.p_short = periodo_short
+        self.p_long = periodo_long
+        self.p_signal = periodo_signal
+    
+    def calcular_sma(self, datos, periodo=20):
+        """Media MÃ³vil Simple."""
+        return datos.rolling(window=periodo).mean()
+    
+    def calcular_ema(self, datos, periodo=20):
+        """Media MÃ³vil Exponencial."""
+        return datos.ewm(span=periodo, adjust=False).mean()
+    
+    def calcular_rsi(self, datos, periodo=14):
+        """RSI (Relative Strength Index)."""
+        delta = datos.diff()
+        ganancia = (delta.where(delta > 0, 0)).rolling(window=periodo).mean()
+        perdida = (-delta.where(delta < 0, 0)).rolling(window=periodo).mean()
+        rs = ganancia / perdida
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+    
+    def calcular_macd(self, datos):
+        """MACD (Moving Average Convergence Divergence)."""
+        ema_short = self.calcular_ema(datos, self.p_short)
+        ema_long = self.calcular_ema(datos, self.p_long)
+        macd = ema_short - ema_long
+        signal = macd.ewm(span=self.p_signal, adjust=False).mean()
+        histogram = macd - signal
+        return macd, signal, histogram
+    
+    def calcular_bandas_bollinger(self, datos, periodo=20, desvios=2):
+        """Bandas de Bollinger."""
+        sma = self.calcular_sma(datos, periodo)
+        std = datos.rolling(window=periodo).std()
+        banda_sup = sma + (std * desvios)
+        banda_inf = sma - (std * desvios)
+        return sma, banda_sup, banda_inf
+    
+    def generar_score_tecnico(self, precio_actual, precio_anterior=None):
+        """
+        Genera score tÃ©cnico (0-100) basado en:
+        - Cambio de precio
+        - Volatilidad
+        - Tendencia aparente
+        """
+        score = 50  # neutral
+        
+        if precio_anterior and precio_anterior > 0:
+            cambio = ((precio_actual - precio_anterior) / precio_anterior) * 100
+            
+            if cambio >= 5:
+                score += 30
+            elif cambio >= 3:
+                score += 20
+            elif cambio >= 1:
+                score += 10
+            elif cambio >= -1:
+                score += 5
+            elif cambio >= -3:
+                score -= 10
+            elif cambio >= -5:
+                score -= 20
+            else:
+                score -= 30
+        
+        # Clamping entre 0-100
+        return max(0, min(100, score))
+    
+    def evaluar_desde_dataframe(self, df_precios):
+        """
+        EvalÃºa anÃ¡lisis tÃ©cnico desde un DataFrame con columnas ['Date', 'Close']
+        Retorna score tÃ©cnico promedio.
+        """
+        if df_precios.empty or len(df_precios) < 2:
+            return 50  # neutral
+        
+        precios = df_precios['Close'].values
+        precio_actual = precios[-1]
+        precio_anterior = precios[-2] if len(precios) > 1 else precio_actual
+        
+        return self.generar_score_tecnico(precio_actual, precio_anterior)
+
+
+=========================================
+FIN DEL CONTENIDO
+=========================================

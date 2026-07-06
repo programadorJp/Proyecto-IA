@@ -79,6 +79,25 @@ class AsyncExpertBrain:
             "cache": self._cache.stats(),
             "circuito": self._circuit.stats(),
         }
+    
+    # ── Prompt libre (usado por el chat conversacional) ──
+
+    async def generar_respuesta_libre(self, prompt: str) -> str:
+        """Genera respuesta a un prompt libre. A diferencia de _generar(),
+        atrapa las excepciones tipadas y devuelve un string amigable —
+        mismo contrato que tenía ExpertBrain._generar() en la versión síncrona."""
+        try:
+            return await self._generar(prompt)
+        except CircuitoAbiertoError as exc:
+            return f"⚠️ {exc}"
+        except GeminiRateLimitError:
+            return "Gemini está con mucha demanda ahora mismo. Intenta de nuevo en unos segundos."
+        except GeminiTimeoutError:
+            return "Gemini no respondió a tiempo. Intenta de nuevo."
+        except GeminiConnectionError:
+            return "Sin conexión a internet. Verifica tu red."
+        except GeminiError as exc:
+            return f"Error de Gemini: {exc}"
 
     # ── Transporte HTTP puro ──
 

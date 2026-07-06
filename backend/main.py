@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.config import GEMINI_API_KEY, FRONTEND_DIR
-from backend.dependencies import init_dependencies
+from backend.dependencies import cerrar_dependencies, init_dependencies
 
 from backend.routers import info, pages, mercado, analisis, recomendaciones, conversacional, chat
 
@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     print(f"🔑 Key: {GEMINI_API_KEY[:10]}...")
     init_dependencies()
     yield
+    await cerrar_dependencies()
     # (sin lógica de shutdown por ahora)
 
 

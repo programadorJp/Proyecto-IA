@@ -1,14 +1,34 @@
-"""expert_brain.py — Motor de Razonamiento con Gemini AI
-Análisis humanizado + noticias reales + predicciones integradas
-Transformer: Gemini 1.5 Flash — modelo fundacional basado en arquitectura Transformer (Google)
+"""expert_brain.py — Motor de Razonamiento con Gemini AI (con esteroides)
+Transformer: Gemini 1.5/2.5 Flash — modelo fundacional basado en arquitectura Transformer (Google)
 Técnica: Few-shot prompting + Chain-of-Thought para clasificación Text-to-Text
+
+Mejoras sobre la versión original:
+- CACHE TTL: procesar_estrategia() y generar_ficha_tecnica() no vuelven a
+  llamar a Gemini si ya generaste el mismo análisis hace poco (ahorra costo
+  y tiempo de respuesta en refrescos seguidos del dashboard).
+- CIRCUIT BREAKER: si Gemini falla varias veces seguidas, deja de insistir
+  por un rato en vez de esperar 30s de timeout en cada request.
+- Logging en vez de prints sueltos.
+- `.stats()` para observabilidad.
+
+La interfaz pública (procesar_estrategia, generar_ficha_tecnica,
+clasificar_sentimiento_noticia, etc.) es IDÉNTICA a la versión anterior.
 """
+import hashlib
 import json
-import requests
-import time
-import sys
+import logging
 import os
+import sys
+import time
+
+import requests
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from agents._cache import TTLCache
+from agents._circuit_breaker import CircuitBreaker
+
+logger = logging.getLogger(__name__)
 
 
 class ExpertBrain:
@@ -23,11 +43,23 @@ class ExpertBrain:
         self.AV_KEY   = os.environ.get("ALPHA_VANTAGE_KEY", "")
         self.NEWS_KEY = os.environ.get("NEWS_API_KEY", "")
 
-    # ──────────────────────────────────────────
+        cache_ttl = float(os.environ.get("GEMINI_CACHE_TTL", 120.0))
+        self._cache_estrategia = TTLCache(ttl_seconds=cache_ttl, max_size=64)
+        self._cache_ficha = TTLCache(ttl_seconds=cache_ttl, max_size=64)
+        self._cache_sentimiento = TTLCache(ttl_seconds=cache_ttl * 5, max_size=256)  # el sentimiento de una noticia no cambia
+        self._circuit = CircuitBreaker(umbral_fallos=5, tiempo_reset=30.0)
+        self.stats = {"requests": 0, "fallos": 0, "cache_hits": 0}
+
+    # ────────────────────────────────────────────────
     # GEMINI — Motor base
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
 
     def _generar(self, prompt: str) -> str:
+        if not self._circuit.permite_llamada():
+            return "⚠️ Gemini viene fallando seguido; se pausaron los intentos un momento. Intenta en unos segundos."
+
+        self.stats["requests"] += 1
+
         for intento in range(self.REINTENTOS):
             try:
                 resp = requests.post(
@@ -37,6 +69,7 @@ class ExpertBrain:
                 ).json()
 
                 if "candidates" in resp:
+                    self._circuit.registrar_exito()
                     return resp["candidates"][0]["content"]["parts"][0]["text"]
 
                 error      = resp.get("error", {})
@@ -45,54 +78,74 @@ class ExpertBrain:
 
                 if error_code == 429:
                     espera = 15 * (intento + 1)
-                    print(f"Cuota excedida, esperando {espera}s... (intento {intento+1}/{self.REINTENTOS})")
+                    logger.warning("Cuota excedida, esperando %ds (intento %d/%d)", espera, intento + 1, self.REINTENTOS)
                     time.sleep(espera)
                     continue
 
                 if any(x in error_msg.lower() for x in ["high demand", "overloaded", "experiencing", "try again"]):
                     espera = 15 * (intento + 1)
-                    print(f"Servidor ocupado, esperando {espera}s... (intento {intento+1}/{self.REINTENTOS})")
+                    logger.warning("Servidor ocupado, esperando %ds (intento %d/%d)", espera, intento + 1, self.REINTENTOS)
                     time.sleep(espera)
                     continue
 
                 if error_code == 503:
-                    print(f"Servicio no disponible, esperando 20s... (intento {intento+1}/{self.REINTENTOS})")
+                    logger.warning("Servicio no disponible, esperando 20s (intento %d/%d)", intento + 1, self.REINTENTOS)
                     time.sleep(20)
                     continue
 
-                print(f"Error Gemini: {error_msg}")
+                logger.error("Error Gemini: %s", error_msg)
+                self._circuit.registrar_fallo()
+                self.stats["fallos"] += 1
                 return f"Error de Gemini: {error_msg}"
 
             except requests.exceptions.Timeout:
-                print(f"Timeout intento {intento+1}/{self.REINTENTOS}")
+                logger.warning("Timeout intento %d/%d", intento + 1, self.REINTENTOS)
                 if intento < self.REINTENTOS - 1:
                     time.sleep(5)
                     continue
+                self._circuit.registrar_fallo()
+                self.stats["fallos"] += 1
                 return "Gemini no respondió a tiempo. Intenta de nuevo."
 
             except requests.exceptions.ConnectionError:
+                self._circuit.registrar_fallo()
+                self.stats["fallos"] += 1
                 return "Sin conexión a internet. Verifica tu red."
 
             except Exception as e:
                 if intento < self.REINTENTOS - 1:
                     time.sleep(3)
                     continue
+                self._circuit.registrar_fallo()
+                self.stats["fallos"] += 1
                 return f"Error inesperado: {str(e)}"
 
+        self._circuit.registrar_fallo()
+        self.stats["fallos"] += 1
         return "Gemini sigue con alta demanda. Espera unos minutos e intenta de nuevo."
 
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
     # CLASIFICACIÓN DE SENTIMIENTO — Transformer Text-to-Text
     # Técnica: Few-shot prompting + Chain-of-Thought
     # Optimizado para mercado minero peruano (reduce error del 20%)
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
 
     def clasificar_sentimiento_noticia(self, titulo: str, ticker: str = "") -> dict:
         """
         Clasifica sentimiento de una noticia financiera.
         Arquitectura: Text-to-Text (secuencia → etiqueta discreta)
         Técnica: Few-shot learning + Chain-of-Thought reasoning
+
+        Cachea por (ticker, titulo): el sentimiento de una noticia ya
+        publicada no cambia, así que no tiene sentido volver a pagarle a
+        Gemini por la misma clasificación.
         """
+        cache_key = "sent:" + hashlib.sha256(f"{ticker}|{titulo}".encode()).hexdigest()[:16]
+        cacheado = self._cache_sentimiento.get(cache_key)
+        if cacheado is not None:
+            self.stats["cache_hits"] += 1
+            return cacheado
+
         prompt = f"""Eres un analista financiero senior especializado en el mercado peruano (BVL) y commodities.
 Tu tarea es clasificar el sentimiento de noticias financieras usando el enfoque Text-to-Text:
 INPUT: titular de noticia financiera → OUTPUT: etiqueta de sentimiento discreta
@@ -142,23 +195,25 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
             data  = json.loads(clean)
             clasificacion = data.get("clasificacion", "NEUTRAL").upper()
 
-            # Validar que sea una etiqueta válida
             if clasificacion not in ("BULLISH", "BEARISH", "NEUTRAL"):
                 clasificacion = "NEUTRAL"
 
-            return {
+            respuesta = {
                 "clasificacion": clasificacion,
                 "confianza":     float(data.get("confianza", 0.5)),
                 "razonamiento":  data.get("razonamiento", "")
             }
         except Exception:
-            # Fallback: buscar etiqueta en texto libre
             texto = resultado.upper()
             if "BULLISH" in texto:
-                return {"clasificacion": "BULLISH", "confianza": 0.5, "razonamiento": resultado[:200]}
+                respuesta = {"clasificacion": "BULLISH", "confianza": 0.5, "razonamiento": resultado[:200]}
             elif "BEARISH" in texto:
-                return {"clasificacion": "BEARISH", "confianza": 0.5, "razonamiento": resultado[:200]}
-            return {"clasificacion": "NEUTRAL", "confianza": 0.3, "razonamiento": resultado[:200]}
+                respuesta = {"clasificacion": "BEARISH", "confianza": 0.5, "razonamiento": resultado[:200]}
+            else:
+                respuesta = {"clasificacion": "NEUTRAL", "confianza": 0.3, "razonamiento": resultado[:200]}
+
+        self._cache_sentimiento.set(cache_key, respuesta)
+        return respuesta
 
     def clasificar_sentimiento_batch(self, noticias: list[dict]) -> list[dict]:
         """
@@ -171,11 +226,9 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
                 titulo=noticia.get("titulo", ""),
                 ticker=noticia.get("ticker", "")
             )
-            resultado["titulo"] = noticia.get("titulo", "")
-            resultado["ticker"] = noticia.get("ticker", "")
+            resultado = {**resultado, "titulo": noticia.get("titulo", ""), "ticker": noticia.get("ticker", "")}
             resultados.append(resultado)
 
-        # Calcular sentimiento agregado
         conteo = {"BULLISH": 0, "BEARISH": 0, "NEUTRAL": 0}
         for r in resultados:
             conteo[r["clasificacion"]] += 1
@@ -194,9 +247,9 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
             "total":        len(resultados)
         }
 
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
     # NOTICIAS EXTERNAS (Alpha Vantage + NewsAPI)
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
 
     def _buscar_noticias_externas(self, tickers: list) -> str:
         encontradas = []
@@ -219,8 +272,8 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
                                 f"(Sentimiento: {sentimiento}, Fecha: {fecha})"
                             )
                     continue
-            except:
-                pass
+            except Exception as exc:
+                logger.debug("Alpha Vantage falló para %s: %s", ticker, exc)
 
             try:
                 r = requests.get(
@@ -235,14 +288,14 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
                         fecha  = art.get("publishedAt", "")[:10]
                         if titulo and "[Removed]" not in titulo:
                             encontradas.append(f"[{ticker}] {titulo} (Fecha: {fecha})")
-            except:
-                pass
+            except Exception as exc:
+                logger.debug("NewsAPI falló para %s: %s", ticker, exc)
 
         return "\n".join(encontradas) if encontradas else ""
 
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
     # NOTICIAS LOCALES (NewsAnalyzer)
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
 
     def _noticias_locales(self, tickers: list) -> str:
         try:
@@ -268,12 +321,12 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
 
             return "\n".join(bloques)
         except Exception as e:
-            print(f"NewsAnalyzer no disponible: {e}")
+            logger.warning("NewsAnalyzer no disponible: %s", e)
             return ""
 
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
     # PREDICCIONES (PredictionEngine)
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
 
     def _obtener_predicciones(self, tickers: list, df) -> str:
         try:
@@ -313,15 +366,28 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
 
             return "\n".join(bloques)
         except Exception as e:
-            print(f"PredictionEngine no disponible: {e}")
+            logger.warning("PredictionEngine no disponible: %s", e)
             return ""
 
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
     # ANÁLISIS PRINCIPAL
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
+
+    @staticmethod
+    def _hash_dataframe(df) -> str:
+        firma = df[["Ticker", "Precio", "Crecimiento_%"]].to_csv(index=False)
+        return "estrategia:" + hashlib.sha256(firma.encode()).hexdigest()[:16]
 
     def procesar_estrategia(self, datos_mercado) -> str:
-        """Análisis humanizado con noticias + predicciones + sentimiento transformer."""
+        """Análisis humanizado con noticias + predicciones + sentimiento transformer.
+        Cachea por el contenido exacto del DataFrame de mercado."""
+
+        cache_key = self._hash_dataframe(datos_mercado)
+        cacheado = self._cache_estrategia.get(cache_key)
+        if cacheado is not None:
+            self.stats["cache_hits"] += 1
+            return cacheado
+
         filas   = []
         tickers = []
         for _, row in datos_mercado.iterrows():
@@ -334,14 +400,13 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
 
         resumen_mercado = "\n".join(filas)
 
-        print("Buscando noticias externas...")
+        logger.info("Buscando noticias externas...")
         noticias_ext = self._buscar_noticias_externas(tickers)
 
-        print("Consultando base de noticias local...")
+        logger.info("Consultando base de noticias local...")
         noticias_loc = self._noticias_locales(tickers)
 
-        # ── Clasificación de sentimiento con Transformer ──
-        print("Clasificando sentimiento con modelo Transformer...")
+        logger.info("Clasificando sentimiento con modelo Transformer...")
         sentimiento_mercado = self._clasificar_sentimiento_mercado(
             noticias_ext, noticias_loc, tickers
         )
@@ -354,7 +419,7 @@ El campo clasificacion debe ser SOLO uno de: BULLISH, BEARISH, NEUTRAL"""
         if not noticias:
             noticias = "No se encontraron noticias recientes."
 
-        print("Generando predicciones...")
+        logger.info("Generando predicciones...")
         predicciones = self._obtener_predicciones(tickers, datos_mercado)
         if not predicciones:
             predicciones = "Predicciones no disponibles."
@@ -401,7 +466,9 @@ Escribe el análisis de forma natural y conversacional, siguiendo esta estructur
 
 Reglas: Español natural, máximo 600 palabras, párrafos que fluyan.
 """
-        return self._generar(prompt)
+        resultado = self._generar(prompt)
+        self._cache_estrategia.set(cache_key, resultado)
+        return resultado
 
     def _clasificar_sentimiento_mercado(
         self, noticias_ext: str, noticias_loc: str, tickers: list
@@ -410,13 +477,11 @@ Reglas: Español natural, máximo 600 palabras, párrafos que fluyan.
         Extrae titulares y clasifica sentimiento con el modelo Transformer.
         Retorna resumen de sentimiento para incluir en el prompt principal.
         """
-        # Extraer titulares de noticias externas
         titulares = []
         if noticias_ext:
             for linea in noticias_ext.split("\n"):
                 linea = linea.strip()
                 if linea and linea.startswith("["):
-                    # Formato: [TICKER] Titular (Sentimiento: X, Fecha: Y)
                     partes = linea.split("]", 1)
                     if len(partes) > 1:
                         ticker  = partes[0].replace("[", "").strip()
@@ -424,7 +489,6 @@ Reglas: Español natural, máximo 600 palabras, párrafos que fluyan.
                         if titular:
                             titulares.append({"titulo": titular, "ticker": ticker})
 
-        # Si no hay titulares externos, usar contexto de noticias locales
         if not titulares and noticias_loc:
             for ticker in tickers[:3]:
                 titulares.append({
@@ -435,10 +499,8 @@ Reglas: Español natural, máximo 600 palabras, párrafos que fluyan.
         if not titulares:
             return "Sentimiento: NEUTRAL — Sin noticias disponibles para clasificar."
 
-        # Clasificar máximo 3 noticias para no consumir demasiados tokens
         resultado = self.clasificar_sentimiento_batch(titulares[:3])
 
-        # Formatear para el prompt
         emojis = {"BULLISH": "📈", "BEARISH": "📉", "NEUTRAL": "➡️"}
         emoji  = emojis.get(resultado["agregado"], "➡️")
 
@@ -457,12 +519,18 @@ Reglas: Español natural, máximo 600 palabras, párrafos que fluyan.
 
         return "\n".join(lineas)
 
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
     # FICHA TÉCNICA
-    # ──────────────────────────────────────────
+    # ────────────────────────────────────────────────
 
     def generar_ficha_tecnica(self, empresa: str, ticker: str) -> str:
-        """Ficha técnica humanizada con noticias reales."""
+        """Ficha técnica humanizada con noticias reales. Cachea por ticker."""
+        cache_key = f"ficha:{ticker}"
+        cacheado = self._cache_ficha.get(cache_key)
+        if cacheado is not None:
+            self.stats["cache_hits"] += 1
+            return cacheado
+
         noticias_ext = self._buscar_noticias_externas([ticker])
         noticias_loc = self._noticias_locales([ticker])
 
@@ -488,4 +556,6 @@ Incluye:
 
 Máximo 200 palabras. Tono humano, no de informe corporativo.
 """
-        return self._generar(prompt)
+        resultado = self._generar(prompt)
+        self._cache_ficha.set(cache_key, resultado)
+        return resultado

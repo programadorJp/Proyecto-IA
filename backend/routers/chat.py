@@ -1,9 +1,6 @@
-"""backend/routers/chat.py — Chat público con Pfinance (usa la API key del dueño).
-
-Nota: el GET "/chat" que sirve chat.html vive en pages.py (es una página,
-no un endpoint de datos). Aquí solo va el POST que conversa de verdad.
-"""
+"""backend/routers/chat.py — Chat público con Pfinance (usa la API key del dueño)."""
 from fastapi import APIRouter, Depends
+from fastapi.concurrency import run_in_threadpool
 
 from backend.dependencies import get_sensor, get_brain
 from backend.schemas import ChatRequest
@@ -12,21 +9,22 @@ router = APIRouter(tags=["Chat"])
 
 
 @router.post("/chat")
-def chat(
+async def chat(
     req: ChatRequest,
     sensor=Depends(get_sensor),
     brain=Depends(get_brain),
 ):
     """Chat público - todos los usuarios usan la API key del dueño."""
 
-    # Construir historial (últimos 6 mensajes)
     historial_texto = ""
     for msg in req.history[-6:]:
         rol = "Usuario" if msg.role == "user" else "Pfinance"
         historial_texto += f"{rol}: {msg.content}\n"
 
-    # Contexto de mercado actual
-    df = sensor.percibir_mercado()
+    # sensor.percibir_mercado() es síncrona (bloqueante) — ahora que este
+    # endpoint es async def, hay que sacarla del event loop manualmente.
+    df = await run_in_threadpool(sensor.percibir_mercado)
+
     resumen_mercado = "\n".join(
         f"• {row['Empresa']} ({row['Ticker']}): S/. {row['Precio']:.2f} "
         f"({'▲' if row['Crecimiento_%'] >= 0 else '▼'} {abs(row['Crecimiento_%']):.2f}%)"
@@ -55,16 +53,9 @@ Responde como Pfinance de forma natural y conversacional.
 
 Pfinance:"""
 
-    try:
-        respuesta = brain._generar(prompt)
-        return {
-            "response": respuesta,
-            "perfil":   req.perfil,
-            "modo":     "API Key centralizada (dueño del sistema)",
-        }
-    except Exception as e:
-        return {
-            "response": f"⚠️ Error generando respuesta: {str(e)}",
-            "perfil":   req.perfil,
-            "modo":     "error",
-        }
+    respuesta = await brain.generar_respuesta_libre(prompt)
+    return {
+        "response": respuesta,
+        "perfil":   req.perfil,
+        "modo":     "API Key centralizada (dueño del sistema)",
+    }

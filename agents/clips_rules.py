@@ -1,7 +1,24 @@
-"""clips_rules.py — Motor de Reglas estilo CLIPS
+"""clips_rules.py — Motor de Reglas estilo CLIPS (con esteroides)
 Sistema Experto BVL · UPAO 2026
 Implementa un sistema de producción IF-THEN con encadenamiento hacia adelante (forward chaining) para evaluar activos financieros.
-Total de reglas: 90 reglas organizadas en 8 categorías"""
+Total de reglas: 90 reglas organizadas en 8 categorías
+
+Mejoras sobre la versión original:
+- Nuevos métodos de consulta: get_regla_por_id(), reglas_por_categoria(),
+  listar_categorias() — útiles para debugging y para un futuro endpoint
+  "/reglas/catalogo" que muestre el motor completo sin tener que evaluar
+  un DataFrame.
+- El "except Exception: continue" que silenciaba errores de una regla mal
+  formada ahora al menos loggea qué regla falló y por qué, en vez de fallar
+  en silencio total (antes era imposible saber si una regla nunca disparaba
+  por su lógica o porque estaba reventando).
+- Índice interno por categoría (se construye una vez en __init__) para que
+  reglas_por_categoria() no tenga que recorrer las 90 reglas cada vez.
+"""
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ClipsRulesEngine:
     """Motor de inferencia hacia adelante.
@@ -368,7 +385,7 @@ class ClipsRulesEngine:
             "nombre": "AGRESIVO_INTERNACIONAL",
             "condicion": lambda f, p: p == "Agresivo" and f["Ticker"] in ["BAP", "SCCO"],
             "accion": "EXPOSICIÓN INTERNACIONAL — Ticker en NYSE, diversificación global para agresivo",
-            "icono": "🌍", "color": "#4ecdc4", "prioridad": 3
+            "icono": "🌐", "color": "#4ecdc4", "prioridad": 3
         },
         {
             "id": "R50", "categoria": "Agresivo",
@@ -667,6 +684,15 @@ class ClipsRulesEngine:
         },
     ]
 
+    def __init__(self):
+        # Índice por categoría, construido una vez, para no recorrer las 90
+        # reglas cada vez que alguien pide reglas_por_categoria().
+        self._indice_categorias: dict[str, list[dict]] = {}
+        for regla in self.REGLAS:
+            self._indice_categorias.setdefault(regla["categoria"], []).append(regla)
+
+        self._indice_ids: dict[str, dict] = {r["id"]: r for r in self.REGLAS}
+
     def evaluar(self, df, perfil: str) -> list:
         """
         Evalúa todas las reglas sobre el DataFrame.
@@ -691,13 +717,15 @@ class ClipsRulesEngine:
                             "categoria": regla.get("categoria", "General"),
                         })
                 except Exception as e:
+                    # Antes: "except Exception: continue" — silenciaba todo.
+                    # Ahora al menos queda registro de qué regla falló y por qué,
+                    # útil para detectar reglas mal formadas o columnas faltantes.
+                    logger.warning("Regla %s falló al evaluar %s: %s", regla.get("id"), fila.get("Ticker"), e)
                     continue
 
-            # Ordenar por prioridad y tomar máximo 3 reglas por empresa
             reglas_empresa.sort(key=lambda x: x["prioridad"])
             hechos_activados.extend(reglas_empresa[:3])
 
-        # Si ninguna regla disparó para una empresa
         empresas_con_regla = {h["empresa"] for h in hechos_activados}
         for _, fila in df.iterrows():
             if fila["Empresa"] not in empresas_con_regla:
@@ -713,6 +741,19 @@ class ClipsRulesEngine:
                 })
 
         return hechos_activados
+
+    def get_regla_por_id(self, regla_id: str) -> dict | None:
+        """Devuelve la definición completa de una regla por su ID (p. ej. 'R42').
+        Útil para debugging o para mostrar el catálogo completo en el frontend."""
+        return self._indice_ids.get(regla_id)
+
+    def reglas_por_categoria(self, categoria: str) -> list[dict]:
+        """Devuelve todas las reglas de una categoría (p. ej. 'Agresivo')."""
+        return self._indice_categorias.get(categoria, [])
+
+    def listar_categorias(self) -> list[str]:
+        """Devuelve las categorías disponibles, en el orden en que aparecen."""
+        return list(self._indice_categorias.keys())
 
     def exportar_lisp(self, df, perfil: str, ruta: str = None):
         """Exporta hechos evaluados al formato CLIPS .lisp"""
@@ -736,7 +777,7 @@ class ClipsRulesEngine:
                     f'"{h["regla"]}" "{h["accion"]}" "{h["categoria"]}")\n'
                 )
             f.write("))\n")
-        print(f"✅ Reglas exportadas: {ruta}")
+        logger.info("Reglas exportadas: %s", ruta)
         return ruta
 
     def resumen_por_categoria(self, df, perfil: str) -> dict:

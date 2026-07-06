@@ -6,7 +6,8 @@ from backend.config import GEMINI_API_KEY
 router = APIRouter(tags=["Info"])
 
 
-@router.get("/")
+# Cambiamos la ruta de "/" a "/api"
+@router.get("/api")   # ← esta es la línea clave
 def root():
     return {
         "status":    "ok",
@@ -26,6 +27,6 @@ def get_status():
         "api_key_preview":      GEMINI_API_KEY[:10] + "..." if GEMINI_API_KEY else None,
         "modo":                 "Todos los usuarios usan la API key del sistema",
         "endpoints_disponibles": [
-            "/", "/dashboard", "/chat", "/activos", "/reglas", "/analisis-ia", "/status"
+            "/api", "/dashboard", "/chat", "/activos", "/reglas", "/analisis-ia", "/status"
         ]
     }

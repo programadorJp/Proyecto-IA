@@ -1,4 +1,4 @@
-/**config.js — Pfinance BVL
+/** config.js — Pfinance BVL
  * Configuración compartida entre dashboard.js y chat.js.
  * Cambia esta URL cuando despliegues el backend en otro entorno.
  */
